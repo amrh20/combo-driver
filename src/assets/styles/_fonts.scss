@@ -1,0 +1,102 @@
+// Kufam Font Family
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-MediumItalic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-SemiBoldItalic.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kufam';
+  src: url('../fonts/kufam/Kufam-BlackItalic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KufamCombo';
+  src: url('../fonts/KufamCombo.otf') format('truetype');
+  font-weight: 900;
+  font-display: swap;
+}
+
+// Global font family variables
+$font-family-kufam: 'Kufam', sans-serif;
+$font-family-alexandria: 'Alexandria', sans-serif;
+
+
+// Utility Classes
+.font-kufam {
+  font-family: 'Kufam', sans-serif;
+}
+
+.font-alexandria {
+  font-family: 'Alexandria', sans-serif;
+}
+

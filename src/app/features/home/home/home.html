@@ -1,0 +1,249 @@
+<section class="home-screen d-flex flex-column gap-4">
+  <div class="home-screen__status driver-card combo-p-24">
+    <p class="home-screen__eyebrow combo-fs-12 font-bold combo-mb-8">حالة الرحلة</p>
+    <h2 class="home-screen__title font-kufam combo-fs-24 font-bold combo-m-0">
+      {{ stateLabel() }}
+    </h2>
+  </div>
+
+  @switch (tripState()) {
+    @case ('IDLE') {
+      <section class="home-screen__idle driver-card combo-p-24">
+        <button
+          class="home-screen__toggle"
+          type="button"
+          [class.home-screen__toggle--online]="isOnline()"
+          (click)="toggleOnline()"
+        >
+          <span class="home-screen__toggle-dot" aria-hidden="true"></span>
+          <span class="home-screen__toggle-main font-kufam combo-fs-28 font-bold">
+            {{ isOnline() ? 'Online' : 'Offline' }}
+          </span>
+          <span class="home-screen__toggle-sub combo-fs-14">
+            {{ isOnline() ? 'جاهز لاستقبال الطلبات' : 'اضغط للاتصال' }}
+          </span>
+        </button>
+      </section>
+
+      @if (isOnline() && hasIncomingOrder()) {
+        <section class="incoming-order driver-card combo-p-24">
+          <p class="incoming-order__tag combo-fs-12 font-bold combo-mb-12">طلب وارد من Consolidation Hub</p>
+          <h3 class="incoming-order__title font-kufam combo-fs-22 font-bold combo-mb-16">
+            {{ order.id }}
+          </h3>
+
+          <div class="incoming-order__meta">
+            <span>{{ order.vendorsCount }} متاجر</span>
+            <span>{{ order.bagsCount }} شنط</span>
+            <span>{{ order.distanceKm }} كم</span>
+          </div>
+
+          <div class="incoming-order__actions d-grid gap-3 combo-mt-24">
+            <combo-button size="lg" [fullWidth]="true" (clicked)="acceptOrder()">قبول الطلب</combo-button>
+            <combo-button variant="outline" color="danger" size="lg" [fullWidth]="true" (clicked)="rejectOrder()">رفض</combo-button>
+          </div>
+        </section>
+      }
+    }
+
+    @case ('HEADING_TO_HUB') {
+      <section class="trip-card driver-card combo-p-24">
+        <span class="trip-card__step combo-fs-12 font-bold combo-br-pill">الخطوة 1</span>
+        <h3 class="trip-card__title font-kufam combo-fs-24 font-bold combo-mt-16 combo-mb-12">
+          توجه إلى الهب
+        </h3>
+        <p class="trip-card__name combo-fs-18 font-bold combo-mb-8">{{ order.hub.name }}</p>
+        <p class="trip-card__text combo-fs-14 combo-mb-16">{{ order.hub.address }}</p>
+
+        <div class="trip-card__info d-flex flex-column gap-2 combo-mb-24">
+          <span>موعد الاستلام: {{ order.hub.pickupWindow }}</span>
+          <span>رقم الهب: {{ order.hub.contactPhone }}</span>
+        </div>
+
+        <combo-button size="lg" [fullWidth]="true" (clicked)="markPickedUp()">
+          تم استلام الطلب
+        </combo-button>
+      </section>
+    }
+
+    @case ('HEADING_TO_CUSTOMER') {
+      <section class="trip-card driver-card combo-p-24">
+        <span class="trip-card__step combo-fs-12 font-bold combo-br-pill">الخطوة 2</span>
+        <h3 class="trip-card__title font-kufam combo-fs-24 font-bold combo-mt-16 combo-mb-12">
+          توجه إلى العميل
+        </h3>
+
+        <div class="trip-card__map combo-mb-12">
+          <span class="font-bold">Map Placeholder</span>
+          <small>ETA {{ order.etaMinutes }} دقيقة</small>
+        </div>
+
+        <div class="order-summary combo-p-10 combo-mb-12" aria-label="ملخص الطلب">
+          <div class="order-summary__grid">
+            <div class="order-summary__item">
+              <svg class="order-summary__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path
+                  d="M5.5 3.5h9A1.5 1.5 0 0 1 16 5v11.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V5a1.5 1.5 0 0 1 1.5-1.5Z"
+                  stroke="currentColor"
+                  stroke-width="1.4"
+                />
+                <path d="M7 7.5h6M7 10.5h6M7 13.5h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+              </svg>
+              <div class="order-summary__content">
+                <span class="order-summary__label combo-fs-11">رقم الطلب</span>
+                <span class="order-summary__value combo-fs-12 font-bold">#{{ order.id }}</span>
+              </div>
+            </div>
+
+            <div class="order-summary__item order-summary__item--cash">
+              <svg class="order-summary__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <rect x="2.5" y="5.5" width="15" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4" />
+                <circle cx="10" cy="10" r="2.25" stroke="currentColor" stroke-width="1.4" />
+                <path d="M4.5 8.25h.01M15.5 11.75h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+              <div class="order-summary__content">
+                <span class="order-summary__label combo-fs-11">المطلوب تحصيله</span>
+                <span class="order-summary__value order-summary__value--cash combo-fs-12 font-bold">
+                  {{ order.cashToCollect }} ج.م
+                </span>
+              </div>
+            </div>
+
+            <div class="order-summary__item">
+              <svg class="order-summary__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path
+                  d="M6.5 7.5V6a3.5 3.5 0 0 1 7 0v1.5"
+                  stroke="currentColor"
+                  stroke-width="1.4"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M5 7.5h10l-.75 9.25a1 1 0 0 1-1 .75H6.75a1 1 0 0 1-1-.75L5 7.5Z"
+                  stroke="currentColor"
+                  stroke-width="1.4"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <div class="order-summary__content">
+                <span class="order-summary__label combo-fs-11">حجم الطلب</span>
+                <span class="order-summary__value combo-fs-12 font-bold">
+                  {{ order.vendorsCount }} متاجر - {{ order.itemsCount }} عنصر
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="trip-card__name combo-fs-18 font-bold combo-mb-8">{{ order.customer.name }}</p>
+        <p class="trip-card__text combo-fs-14 combo-mb-8">{{ order.customer.address }}</p>
+        <p class="trip-card__text combo-fs-13 combo-mb-16">علامة مميزة: {{ order.customer.landmark }}</p>
+
+        <div class="trip-card__actions d-flex flex-column gap-3">
+          <combo-button size="lg" [fullWidth]="true" (clicked)="markArrived()">
+            وصلت لموقع العميل
+          </combo-button>
+          <combo-button
+            variant="ghost"
+            color="danger"
+            size="lg"
+            [fullWidth]="true"
+            (clicked)="openIssueSheet()"
+          >
+            يوجد مشكلة في التسليم
+          </combo-button>
+        </div>
+      </section>
+    }
+
+    @case ('COLLECTION') {
+      <section class="collection-card combo-p-24">
+        <p class="collection-card__label combo-fs-14 font-bold combo-mb-12">التحصيل النهائي</p>
+        <h3 class="collection-card__amount font-kufam font-black combo-mb-12">
+          برجاء تحصيل {{ order.cashToCollect }} ج.م
+        </h3>
+        <p class="collection-card__text combo-fs-14 combo-mb-28">
+          سلّم الطلب للعميل بعد التحصيل النقدي وتأكيد الاستلام.
+        </p>
+
+        <div class="collection-card__actions d-flex flex-column gap-3">
+          <combo-button color="neutral" size="lg" [fullWidth]="true" (clicked)="completeDelivery()">
+            تم التحصيل والتسليم
+          </combo-button>
+          <combo-button
+            variant="outline"
+            color="danger"
+            size="lg"
+            [fullWidth]="true"
+            customTextColor="var(--Combo-text-text-error)"
+            (clicked)="openIssueSheet()"
+          >
+            يوجد مشكلة في التسليم
+          </combo-button>
+        </div>
+      </section>
+    }
+
+    @case ('ISSUE_REPORTED') {
+      <section class="issue-reported driver-card combo-p-24" aria-live="polite">
+        <div class="issue-reported__icon" aria-hidden="true">
+          <svg viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="36" stroke="currentColor" stroke-width="3" />
+            <path
+              d="M40 24v22M40 54h.02"
+              stroke="currentColor"
+              stroke-width="4"
+              stroke-linecap="round"
+            />
+          </svg>
+        </div>
+        <h3 class="issue-reported__title font-kufam combo-fs-22 font-bold combo-mb-12">
+          تم تعليق الطلب
+        </h3>
+        <p class="issue-reported__message combo-fs-15 combo-m-0">
+          تم تعليق الطلب، يرجى انتظار تواصل الدعم
+        </p>
+      </section>
+    }
+  }
+</section>
+
+<combo-bottom-sheet
+  [open]="issueSheetOpen()"
+  title="الإبلاغ عن مشكلة في التسليم"
+  ariaLabel="الإبلاغ عن مشكلة في التسليم"
+  (closed)="closeIssueSheet()"
+>
+  <p class="issue-sheet__hint combo-fs-14 combo-mb-16">
+    اختر سبب المشكلة لمساعدة فريق الدعم على اتخاذ الإجراء المناسب.
+  </p>
+
+  <div class="issue-sheet__options d-flex flex-column gap-3 combo-mb-24" role="radiogroup" aria-label="أسباب مشاكل التسليم">
+    @for (option of issueOptions; track option.type) {
+      <button
+        type="button"
+        class="issue-option"
+        role="radio"
+        [class.issue-option--selected]="selectedIssue() === option.type"
+        [attr.aria-checked]="selectedIssue() === option.type"
+        (click)="selectIssue(option.type)"
+      >
+        <span class="issue-option__indicator" aria-hidden="true">
+          @if (selectedIssue() === option.type) {
+            <span class="issue-option__dot"></span>
+          }
+        </span>
+        <span class="issue-option__label combo-fs-15 font-medium">{{ option.label }}</span>
+      </button>
+    }
+  </div>
+
+  <combo-button
+    color="danger"
+    size="lg"
+    [fullWidth]="true"
+    [disabled]="!selectedIssue()"
+    (clicked)="confirmIssueReport()"
+  >
+    إبلاغ وتعليق الطلب
+  </combo-button>
+</combo-bottom-sheet>

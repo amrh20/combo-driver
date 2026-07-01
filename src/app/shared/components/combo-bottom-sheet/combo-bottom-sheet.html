@@ -1,0 +1,21 @@
+@if (open) {
+  <div class="combo-bottom-sheet" role="presentation" (click)="onBackdropClick()">
+    <div
+      class="combo-bottom-sheet__panel"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="ariaLabel || title || 'نافذة منبثقة'"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="combo-bottom-sheet__handle" aria-hidden="true"></div>
+
+      @if (title) {
+        <h2 class="combo-bottom-sheet__title font-kufam combo-fs-20 font-bold combo-mb-16">
+          {{ title }}
+        </h2>
+      }
+
+      <ng-content />
+    </div>
+  </div>
+}

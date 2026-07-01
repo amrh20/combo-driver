@@ -1,0 +1,32 @@
+<main class="driver-shell driver-page">
+  <header class="driver-shell__header d-flex align-items-center justify-content-between gap-3">
+    <div>
+      <p class="driver-shell__eyebrow combo-fs-12 combo-mb-4">Combo Driver</p>
+      <h1 class="driver-shell__title font-kufam combo-fs-20 font-bold combo-m-0">
+        أهلاً، {{ driver().name }}
+      </h1>
+    </div>
+
+    <combo-button variant="ghost" color="neutral" size="sm" (clicked)="logout()">
+      خروج
+    </combo-button>
+  </header>
+
+  <section class="driver-shell__content">
+    <router-outlet />
+  </section>
+
+  <nav class="driver-shell__nav" aria-label="Driver bottom navigation">
+    @for (item of navItems; track item.link) {
+      <a
+        class="driver-shell__nav-item"
+        [routerLink]="item.link"
+        routerLinkActive="driver-shell__nav-item--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <span class="driver-shell__nav-label font-bold">{{ item.label }}</span>
+        <span class="driver-shell__nav-hint combo-fs-10">{{ item.hint }}</span>
+      </a>
+    }
+  </nav>
+</main>

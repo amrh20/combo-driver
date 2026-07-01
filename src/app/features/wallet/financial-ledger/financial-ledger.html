@@ -1,0 +1,117 @@
+<section class="ledger-screen d-flex flex-column gap-4">
+  <header class="ledger-screen__header">
+    <combo-button variant="ghost" color="neutral" size="sm" link="/wallet">
+      رجوع للمحفظة
+    </combo-button>
+
+    <p class="ledger-screen__eyebrow combo-fs-12 font-bold combo-mt-16 combo-mb-8">كشف الحساب</p>
+    <h2 class="ledger-screen__title font-kufam combo-fs-24 font-bold combo-m-0">
+      الحركات المالية
+    </h2>
+  </header>
+
+  <section class="ledger-filters driver-card combo-p-16" aria-label="تصفية الحركات">
+    <div class="ledger-filters__chips d-flex flex-wrap gap-2 combo-mb-12">
+      <button
+        type="button"
+        class="ledger-filters__chip combo-fs-13 font-bold"
+        [class.ledger-filters__chip--active]="isPeriodActive('today')"
+        (click)="selectPeriod('today')"
+      >
+        اليوم
+      </button>
+      <button
+        type="button"
+        class="ledger-filters__chip combo-fs-13 font-bold"
+        [class.ledger-filters__chip--active]="isPeriodActive('week')"
+        (click)="selectPeriod('week')"
+      >
+        الأسبوع
+      </button>
+      <button
+        type="button"
+        class="ledger-filters__chip combo-fs-13 font-bold"
+        [class.ledger-filters__chip--active]="isPeriodActive('month')"
+        (click)="selectPeriod('month')"
+      >
+        الشهر
+      </button>
+    </div>
+
+    <div class="ledger-filters__date driver-field combo-m-0">
+      <label for="ledgerDate">تاريخ محدد</label>
+      <div class="ledger-filters__date-row d-flex gap-2">
+        <input
+          id="ledgerDate"
+          type="date"
+          [value]="selectedDate()"
+          (change)="onDateChange($any($event.target).value)"
+        />
+        @if (selectedDate()) {
+          <combo-button variant="outline" color="neutral" size="sm" (clicked)="clearDateFilter()">
+            مسح
+          </combo-button>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="ledger-summary driver-card combo-p-16" aria-label="ملخص الفترة">
+    <div class="ledger-summary__grid">
+      <div class="ledger-summary__item">
+        <span class="combo-fs-12">إضافات</span>
+        <strong class="ledger-summary__value ledger-summary__value--positive combo-fs-16 font-bold">
+          +{{ formatMoney(periodSummary().credits) }}
+        </strong>
+      </div>
+      <div class="ledger-summary__item">
+        <span class="combo-fs-12">خصومات</span>
+        <strong class="ledger-summary__value ledger-summary__value--negative combo-fs-16 font-bold">
+          −{{ formatMoney(periodSummary().debits) }}
+        </strong>
+      </div>
+    </div>
+  </section>
+
+  <div class="ledger-timeline d-flex flex-column gap-3">
+    @if (filteredTransactions().length === 0) {
+      <article class="ledger-empty driver-card combo-p-24">
+        <p class="ledger-empty__text combo-fs-14 combo-m-0">لا توجد حركات في الفترة المحددة.</p>
+      </article>
+    } @else {
+      @for (txn of filteredTransactions(); track txn.id) {
+        <article class="ledger-item driver-card combo-p-16">
+          <div class="ledger-item__rail" aria-hidden="true">
+            <span class="ledger-item__dot"></span>
+          </div>
+
+          <div class="ledger-item__content">
+            <div class="ledger-item__header d-flex align-items-start justify-content-between gap-3 combo-mb-8">
+              <div>
+                <span class="ledger-item__type combo-fs-11 font-bold">{{ typeLabel(txn.type) }}</span>
+                <h3 class="ledger-item__title combo-fs-15 font-bold combo-m-0">{{ txn.description }}</h3>
+              </div>
+              <strong
+                class="ledger-item__amount combo-fs-15 font-bold"
+                [class.ledger-item__amount--positive]="amountTone(txn.type) === 'positive'"
+                [class.ledger-item__amount--negative]="amountTone(txn.type) === 'negative'"
+              >
+                {{ amountPrefix(txn.type) }}{{ formatMoney(txn.amount) }}
+              </strong>
+            </div>
+
+            <div class="ledger-item__meta d-flex flex-wrap gap-2 combo-fs-12">
+              <span>{{ formatDate(txn.occurredAt) }}</span>
+              <span aria-hidden="true">•</span>
+              <span>{{ formatTime(txn.occurredAt) }}</span>
+              @if (txn.orderId) {
+                <span aria-hidden="true">•</span>
+                <span>{{ txn.orderId }}</span>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    }
+  </div>
+</section>

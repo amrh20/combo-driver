@@ -1,0 +1,37 @@
+<main class="auth-page driver-page d-flex align-items-center">
+  <section class="auth-page__card driver-card combo-p-24">
+    <div class="auth-page__brand combo-mb-32">
+      <span class="auth-page__badge combo-fs-12 font-bold combo-br-pill">Driver App</span>
+      <h1 class="auth-page__title font-kufam combo-fs-28 font-bold combo-mt-16 combo-mb-8">
+        تسجيل دخول السائق
+      </h1>
+      <p class="auth-page__subtitle combo-fs-14 combo-m-0">
+        دخول آمن برقم الهاتف وكلمة المرور فقط.
+      </p>
+    </div>
+
+    <form class="auth-page__form d-flex flex-column gap-4" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="driver-field">
+        <label for="phone">رقم الهاتف</label>
+        <input id="phone" inputmode="tel" autocomplete="tel" formControlName="phone" placeholder="01000000000" />
+      </div>
+
+      <div class="driver-field">
+        <label for="password">كلمة المرور</label>
+        <input id="password" type="password" autocomplete="current-password" formControlName="password" placeholder="••••••••" />
+      </div>
+
+      @if (errorMessage()) {
+        <p class="auth-page__error combo-fs-13 combo-m-0">{{ errorMessage() }}</p>
+      }
+
+      <combo-button type="submit" size="lg" [fullWidth]="true">
+        دخول
+      </combo-button>
+
+      <a class="auth-page__link combo-fs-13 font-medium text-center" routerLink="/auth/change-password">
+        تغيير كلمة المرور
+      </a>
+    </form>
+  </section>
+</main>

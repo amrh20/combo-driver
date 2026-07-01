@@ -1,0 +1,118 @@
+.wallet-screen {
+  &__eyebrow {
+    color: var(--Combo-text-text-primary);
+  }
+
+  &__title {
+    color: var(--Combo-text-text-display);
+  }
+}
+
+.wallet-card {
+  display: flex;
+  flex-direction: column;
+
+  &__header {
+    min-height: 0;
+  }
+
+  &__tag {
+    display: inline-flex;
+    margin-bottom: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--Combo-bg-background-neutral-100);
+    color: var(--Combo-text-text-secondary-paragraph);
+
+    &--earnings {
+      background: var(--Combo-bg-background-primary-50);
+      color: var(--Combo-text-text-primary);
+    }
+  }
+
+  &__heading {
+    color: var(--Combo-text-text-display);
+  }
+
+  &__badge {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--Combo-bg-background-neutral-50);
+    color: var(--Combo-text-text-secondary-paragraph);
+  }
+
+  &__value {
+    color: var(--Combo-text-text-display);
+    line-height: 1.1;
+  }
+
+  &__hint {
+    color: var(--Combo-text-text-secondary-paragraph);
+  }
+
+  &__breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--Combo-border-border-neutral-secondary);
+    color: var(--Combo-text-text-secondary-paragraph);
+
+    &:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+  }
+
+  &__row-value--positive {
+    color: var(--Combo-text-text-success);
+  }
+
+  &__row-value--negative {
+    color: var(--Combo-text-text-error);
+  }
+
+  &__total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-radius: 16px;
+    background: var(--Combo-bg-background-neutral-50);
+    color: var(--Combo-text-text-display);
+  }
+}
+
+.wallet-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--Combo-alpha-alpha-black-40);
+
+  &__panel {
+    width: min(100%, 420px);
+  }
+
+  &__title {
+    color: var(--Combo-text-text-display);
+  }
+
+  &__message {
+    color: var(--Combo-text-text-secondary-paragraph);
+    line-height: 1.6;
+  }
+}

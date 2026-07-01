@@ -1,0 +1,106 @@
+<section class="history-screen">
+  <div class="history-screen__intro combo-mb-12">
+    <p class="history-screen__eyebrow combo-fs-12 font-bold combo-mb-8">السجل</p>
+    <h2 class="history-screen__title font-kufam combo-fs-24 font-bold combo-m-0">
+      سجل الطلبات
+    </h2>
+  </div>
+
+  <div class="history-filters">
+    <div class="history-filters__scroll" aria-label="تصفية حسب الوقت">
+      <div class="history-filters__chips">
+        <button
+          type="button"
+          class="history-filters__chip combo-fs-13 font-bold"
+          [class.history-filters__chip--active]="isTimeFilterActive('today')"
+          (click)="selectTimeFilter('today')"
+        >
+          اليوم
+        </button>
+        <button
+          type="button"
+          class="history-filters__chip combo-fs-13 font-bold"
+          [class.history-filters__chip--active]="isTimeFilterActive('week')"
+          (click)="selectTimeFilter('week')"
+        >
+          هذا الأسبوع
+        </button>
+        <button
+          type="button"
+          class="history-filters__chip combo-fs-13 font-bold"
+          [class.history-filters__chip--active]="isTimeFilterActive('month')"
+          (click)="selectTimeFilter('month')"
+        >
+          هذا الشهر
+        </button>
+        <button
+          type="button"
+          class="history-filters__chip combo-fs-13 font-bold"
+          [class.history-filters__chip--active]="isTimeFilterActive('all')"
+          (click)="selectTimeFilter('all')"
+        >
+          الكل
+        </button>
+      </div>
+    </div>
+
+    <div class="history-filters__status" role="group" aria-label="تصفية حسب الحالة">
+      <button
+        type="button"
+        class="history-filters__status-btn combo-fs-13 font-bold"
+        [class.history-filters__status-btn--active]="isStatusFilterActive('COMPLETED')"
+        (click)="selectStatusFilter('COMPLETED')"
+      >
+        مكتمل
+      </button>
+      <button
+        type="button"
+        class="history-filters__status-btn combo-fs-13 font-bold"
+        [class.history-filters__status-btn--active]="isStatusFilterActive('CANCELLED')"
+        (click)="selectStatusFilter('CANCELLED')"
+      >
+        ملغي
+      </button>
+    </div>
+
+    <p class="history-filters__summary combo-fs-13 font-bold combo-m-0" aria-live="polite">
+      عدد الطلبات: {{ filteredSummary().orderCount }}
+      <span class="history-filters__summary-sep" aria-hidden="true">|</span>
+      إجمالي الأرباح: {{ formatProfit(filteredSummary().totalProfit) }}
+    </p>
+  </div>
+
+  <div class="history-list d-flex flex-column gap-3">
+    @if (filteredOrders().length === 0) {
+      <article class="history-empty driver-card combo-p-24">
+        <p class="history-empty__text combo-fs-14 combo-m-0">لا توجد طلبات مطابقة للفلاتر المحددة.</p>
+      </article>
+    } @else {
+      @for (order of filteredOrders(); track order.id) {
+        <article
+          class="history-item driver-card combo-p-20"
+          [class.history-item--cancelled]="isCancelled(order)"
+        >
+          <div>
+            <div class="history-item__head d-flex align-items-center gap-2 combo-mb-6">
+              <p class="history-item__id combo-fs-16 font-bold combo-m-0">{{ order.id }}</p>
+              <span class="history-item__status combo-fs-11 font-bold">
+                {{ statusLabel(order.status) }}
+              </span>
+            </div>
+            <p class="history-item__date combo-fs-13 combo-m-0">{{ order.date }}</p>
+          </div>
+
+          <div class="history-item__profit">
+            <span class="combo-fs-11 font-bold">ربح السائق</span>
+            @if (isCancelled(order)) {
+              <strong class="combo-fs-18 font-kufam">—</strong>
+            } @else {
+              <strong class="combo-fs-18 font-kufam">{{ formatProfit(order.profit) }}</strong>
+            }
+          </div>
+        </article>
+      }
+    }
+  </div>
+</section>

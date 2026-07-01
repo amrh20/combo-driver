@@ -1,0 +1,107 @@
+<section class="wallet-screen d-flex flex-column gap-4">
+  <div class="wallet-screen__intro">
+    <p class="wallet-screen__eyebrow combo-fs-12 font-bold combo-mb-8">المحفظة</p>
+    <h2 class="wallet-screen__title font-kufam combo-fs-24 font-bold combo-m-0">
+      التسوية اليومية
+    </h2>
+  </div>
+
+  <article class="wallet-card driver-card combo-p-24">
+    <div class="wallet-card__header d-flex align-items-start justify-content-between gap-3 combo-mb-12">
+      <div>
+        <span class="wallet-card__tag combo-fs-11 font-bold">العهدة</span>
+        <h3 class="wallet-card__heading font-kufam combo-fs-18 font-bold combo-m-0">العهدة الحالية</h3>
+      </div>
+      <span class="wallet-card__badge combo-fs-11 font-bold">Company Cash</span>
+    </div>
+
+    <strong class="wallet-card__value font-kufam combo-fs-36 font-bold combo-mb-8">
+      {{ formatMoney(unremittedCash()) }}
+    </strong>
+    <p class="wallet-card__hint combo-fs-13 combo-mb-20">
+      إجمالي النقد المحصل من العملاء ولم يُورَّد للهب بعد.
+    </p>
+
+    <combo-button
+      size="lg"
+      [fullWidth]="true"
+      [disabled]="unremittedCash() <= 0"
+      (clicked)="openRemitConfirm()"
+    >
+      تم توريد الكاش
+    </combo-button>
+  </article>
+
+  <article class="wallet-card driver-card combo-p-24">
+    <div class="wallet-card__header d-flex align-items-start justify-content-between gap-3 combo-mb-12">
+      <div>
+        <span class="wallet-card__tag wallet-card__tag--earnings combo-fs-11 font-bold">مستحقاتي</span>
+        <h3 class="wallet-card__heading font-kufam combo-fs-18 font-bold combo-m-0">الصافي المستحق</h3>
+      </div>
+      <span class="wallet-card__badge combo-fs-11 font-bold">Net Payout</span>
+    </div>
+
+    <ul class="wallet-card__breakdown combo-mb-16">
+      <li class="wallet-card__row">
+        <span class="combo-fs-14">أرباح التوصيل</span>
+        <strong class="combo-fs-14 font-bold">{{ formatMoney(earnings()) }}</strong>
+      </li>
+      <li class="wallet-card__row">
+        <span class="combo-fs-14">بونص</span>
+        <strong class="wallet-card__row-value--positive combo-fs-14 font-bold">
+          +{{ formatMoney(bonus()) }}
+        </strong>
+      </li>
+      <li class="wallet-card__row">
+        <span class="combo-fs-14">سلف خلال اليوم</span>
+        <strong class="wallet-card__row-value--negative combo-fs-14 font-bold">
+          −{{ formatMoney(advances()) }}
+        </strong>
+      </li>
+    </ul>
+
+    <div class="wallet-card__total combo-p-12 combo-mb-20">
+      <span class="combo-fs-13 font-bold">إجمالي الصافي</span>
+      <strong class="wallet-card__value font-kufam combo-fs-28 font-bold combo-m-0">
+        {{ formatMoney(netPayout()) }}
+      </strong>
+    </div>
+
+    <combo-button
+      size="lg"
+      [fullWidth]="true"
+      [disabled]="netPayout() <= 0"
+      (clicked)="openPayoutConfirm()"
+    >
+      تم قبض المستحقات
+    </combo-button>
+  </article>
+
+  <combo-button variant="outline" color="primary" size="lg" [fullWidth]="true" link="/wallet/ledger">
+    كشف الحساب المفصل
+  </combo-button>
+</section>
+
+@if (pendingConfirm()) {
+  <div class="wallet-dialog" role="presentation" (click)="closeConfirm()">
+    <div
+      class="wallet-dialog__panel driver-card combo-p-24"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="confirmTitle()"
+      (click)="$event.stopPropagation()"
+    >
+      <h3 class="wallet-dialog__title font-kufam combo-fs-20 font-bold combo-mb-12">
+        {{ confirmTitle() }}
+      </h3>
+      <p class="wallet-dialog__message combo-fs-14 combo-mb-24">{{ confirmMessage() }}</p>
+
+      <div class="wallet-dialog__actions d-grid gap-3">
+        <combo-button size="lg" [fullWidth]="true" (clicked)="confirmAction()">تأكيد</combo-button>
+        <combo-button variant="outline" color="neutral" size="lg" [fullWidth]="true" (clicked)="closeConfirm()">
+          إلغاء
+        </combo-button>
+      </div>
+    </div>
+  </div>
+}

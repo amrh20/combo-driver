@@ -1,0 +1,587 @@
+// ============================================
+// Combo Button Component v3 - Theme-Aware Color System
+// Uses CSS Theme Variables from foundation/_themes.scss
+// Reacts to data-theme="light" | "dark" on <html> or <body>
+// Design System compliant, RTL/LTR compatible
+// ============================================
+
+// Design Tokens (Layout, typography, sizing – non-color)
+// ============================================
+$btn-font-family: 'Alexandria', sans-serif;
+$btn-font-weight-medium: 500;
+$btn-border-width: 1px;
+$btn-transition: all 0.2s ease-in-out;
+
+$focus-ring-width: 2px;
+$focus-ring-offset: 2px;
+
+$btn-height-sm: 32px;
+$btn-height-md: 40px;
+$btn-height-lg: 48px;
+
+$btn-padding-inline-sm: 16px;
+$btn-padding-inline-md: 24px;
+$btn-padding-inline-lg: 32px;
+
+$btn-font-size-sm: 12px;
+$btn-font-size-md: 14px;
+$btn-font-size-lg: 16px;
+
+$btn-line-height-sm: 20px;
+$btn-line-height-md: 24px;
+$btn-line-height-lg: 24px;
+
+$btn-border-radius: 9999px;
+$btn-icon-gap: 8px;
+
+// Colors: use Figma variable names from foundation/_themes.scss (light/dark)
+
+// Base Button Styles
+// ============================================
+.combo-btn {
+  // Layout - Precision alignment
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  position: relative;
+  
+  // Typography
+  font-family: $btn-font-family;
+  font-weight: $btn-font-weight-medium;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  
+  // Pill-shaped border radius
+  border-radius: $btn-border-radius;
+  
+  // Interaction
+  cursor: pointer;
+  user-select: none;
+  border: $btn-border-width solid transparent;
+  transition: $btn-transition;
+  
+  // Accessibility
+  &:focus {
+    outline: none;
+  }
+  
+  &:focus-visible {
+    outline: $focus-ring-width solid currentColor;
+    outline-offset: $focus-ring-offset;
+  }
+  
+  // Full width variant
+  &--full-width {
+    width: 100%;
+  }
+}
+
+// Size Variants
+// ============================================
+.combo-btn--sm {
+  height: $btn-height-sm;
+  padding-inline: $btn-padding-inline-sm;
+  font-size: $btn-font-size-sm;
+  line-height: $btn-line-height-sm;
+  
+  .combo-btn__icon {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+  }
+  
+  .combo-btn__spinner-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.combo-btn--md {
+  height: $btn-height-md;
+  padding-inline: $btn-padding-inline-md;
+  font-size: $btn-font-size-md;
+  line-height: $btn-line-height-md;
+  
+  .combo-btn__icon {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+  }
+  
+  .combo-btn__spinner-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.combo-btn--lg {
+  height: $btn-height-lg;
+  padding-inline: $btn-padding-inline-lg;
+  font-size: $btn-font-size-lg;
+  line-height: $btn-line-height-lg;
+  
+  .combo-btn__icon {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+  }
+  
+  .combo-btn__spinner-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+// Variant: Solid - Primary (Green)
+// ============================================
+.combo-btn--solid-primary {
+  background-color: var(--Combo-button-button-background-primary-default);
+  color: var(--Combo-text-text-oncolor-primary);
+  border-color: var(--Combo-button-button-background-primary-default);
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-primary-hovered);
+    border-color: var(--Combo-button-button-background-primary-hovered);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-primary-pressed);
+    border-color: var(--Combo-button-button-background-primary-pressed);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-button-button-background-primary-focused);
+  }
+}
+
+// Variant: Solid - Secondary (Gray with Black text)
+// ============================================
+.combo-btn--solid-secondary {
+  background-color: var(--Combo-button-button-background-neutral-default);
+  color: var(--Combo-text-text-default);
+  border-color: var(--Combo-button-button-background-neutral-default);
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-neutral-hovered);
+    border-color: var(--Combo-button-button-background-neutral-hovered);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-neutral-pressed);
+    border-color: var(--Combo-button-button-background-neutral-pressed);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-text-text-default);
+  }
+}
+
+// Variant: Solid - Neutral (Black)
+// ============================================
+.combo-btn--solid-neutral {
+  background-color: var(--Combo-button-button-background-black-default);
+  color: var(--Combo-text-text-oncolor-primary);
+  border-color: var(--Combo-button-button-background-black-default);
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-black-hovered);
+    border-color: var(--Combo-button-button-background-black-hovered);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-black-pressed);
+    border-color: var(--Combo-button-button-background-black-pressed);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-button-button-background-black-focused);
+  }
+}
+
+// Variant: Solid - Danger (Red)
+// ============================================
+.combo-btn--solid-danger {
+  background-color: var(--Combo-button-button-background-danger-primary-default);
+  color: var(--Combo-button-button-label-danger-primary-default-oncolor);
+  border-color: var(--Combo-button-button-background-danger-primary-default);
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-danger-primary-hovered);
+    border-color: var(--Combo-button-button-background-danger-primary-hovered);
+    color: var(--Combo-button-button-label-danger-primary-hovered-oncolor);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-danger-primary-pressed);
+    border-color: var(--Combo-button-button-background-danger-primary-pressed);
+    color: var(--Combo-button-button-label-danger-primary-pressed-oncolor);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-button-button-background-danger-primary-focused);
+  }
+}
+
+// Variant: Outline - Primary (Green)
+// ============================================
+.combo-btn--outline-primary {
+  background-color: var(--Combo-button-button-background-transparent-default);
+  color: var(--Combo-text-text-primary);
+  border-color: var(--Combo-border-border-primary);
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-hovered);
+    color: var(--Combo-button-button-label-transparent-hovered-on-color);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-pressed);
+    color: var(--Combo-button-button-label-transparent-pressed-on-color);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-border-border-primary);
+  }
+}
+
+// Variant: Outline - Secondary (Gray)
+// ============================================
+.combo-btn--outline-secondary {
+  background-color: var(--Combo-button-button-background-transparent-default);
+  color: var(--Combo-text-text-default);
+  border-color: var(--Combo-border-border-neutral-secondary);
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-neutral-default);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-neutral-hovered);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-text-text-default);
+  }
+}
+
+// Variant: Outline - Neutral (Black)
+// ============================================
+.combo-btn--outline-neutral {
+  background-color: var(--Combo-button-button-background-transparent-default);
+  color: var(--Combo-text-text-default);
+  border-color: var(--Combo-border-border-black);
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-hovered);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-pressed);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-border-border-black);
+  }
+}
+
+// Variant: Outline - Danger (Red)
+// ============================================
+.combo-btn--outline-danger {
+  background-color: var(--Combo-button-button-background-transparent-default);
+  color: var(--Combo-link-link-danger);
+  border-color: var(--Combo-border-border-error);
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-hovered);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-pressed);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-border-border-error);
+  }
+}
+
+// Variant: Ghost - Primary (Green)
+// ============================================
+.combo-btn--ghost-primary {
+  background-color: var(--Combo-button-button-background-transparent-default);
+  color: var(--Combo-text-text-primary);
+  border-color: transparent;
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-hovered);
+    color: var(--Combo-button-button-label-transparent-hovered-on-color);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-pressed);
+    color: var(--Combo-button-button-label-transparent-pressed-on-color);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-text-text-primary);
+  }
+}
+
+// Variant: Ghost - Secondary (Gray)
+// ============================================
+.combo-btn--ghost-secondary {
+  background-color: var(--Combo-button-button-background-transparent-default);
+  color: var(--Combo-text-text-default);
+  border-color: transparent;
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-neutral-default);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-neutral-hovered);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-text-text-default);
+  }
+}
+
+// Variant: Ghost - Neutral (Black)
+// ============================================
+.combo-btn--ghost-neutral {
+  background-color: var(--Combo-button-button-background-transparent-default);
+  color: var(--Combo-text-text-default);
+  border-color: transparent;
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-hovered);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-pressed);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-text-text-default);
+  }
+}
+
+// Variant: Ghost - Danger (Red)
+// ============================================
+.combo-btn--ghost-danger {
+  background-color: var(--Combo-button-button-background-transparent-default);
+  color: var(--Combo-link-link-danger);
+  border-color: transparent;
+  
+  &:hover:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-hovered);
+  }
+  
+  &:active:not(.combo-btn--disabled) {
+    background-color: var(--Combo-button-button-background-transparent-pressed);
+  }
+  
+  &:focus-visible {
+    outline-color: var(--Combo-border-border-error);
+  }
+}
+
+// Disabled State
+// ============================================
+.combo-btn--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: var(--Combo-global-background-disabled) !important;
+  color: var(--Combo-global-text-default-disabled) !important;
+  border-color: var(--Combo-global-background-disabled) !important;
+  filter: none !important;
+  
+  &:hover,
+  &:active {
+    background-color: var(--Combo-global-background-disabled) !important;
+    color: var(--Combo-global-text-default-disabled) !important;
+    border-color: var(--Combo-global-background-disabled) !important;
+    filter: none !important;
+  }
+}
+
+// Button Content & Icons (RTL/LTR Support)
+// ============================================
+.combo-btn__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  gap: $btn-icon-gap;
+  transition: opacity 0.2s ease-in-out;
+  
+  &--hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.combo-btn__label {
+  display: inline-block;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.combo-btn__icon {
+  // Container alignment
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+  
+  // Inherit color from parent button
+  color: inherit;
+  
+  // Force internal SVG to take full container size and use button's text color
+  // This overrides hardcoded pixel widths and colors in SVG files
+  svg {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    fill: currentColor !important;
+    stroke: currentColor !important;
+    
+    // Target all internal SVG elements (path, circle, rect, polygon, etc.)
+    * {
+      fill: currentColor !important;
+      stroke: currentColor !important;
+    }
+  }
+  
+  // RTL Support: Icons automatically flip position via flex-direction
+  // No need for hardcoded left/right - CSS logical properties handle this
+  &--lead {
+    margin-inline-end: 0;
+  }
+  
+  &--trail {
+    margin-inline-start: 0;
+  }
+}
+
+// Loading State
+// ============================================
+.combo-btn--loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.combo-btn__spinner {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.combo-btn__spinner-icon {
+  animation: combo-btn-spin 0.8s linear infinite;
+}
+
+.combo-btn__spinner-track {
+  opacity: 0.25;
+  stroke-dasharray: 0;
+}
+
+.combo-btn__spinner-head {
+  opacity: 0.75;
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: combo-btn-spinner-dash 1.5s ease-in-out infinite;
+}
+
+@keyframes combo-btn-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes combo-btn-spinner-dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+// ============================================
+// Icon-Only Variant (Circular Buttons)
+// ============================================
+.combo-btn--icon-only {
+  // Perfect circle
+  border-radius: 50% !important;
+  
+  // Remove horizontal padding
+  padding-inline: 0 !important;
+  
+  // Force width to equal height for perfect circle
+  // Width will be set based on size variant below
+  aspect-ratio: 1 / 1;
+  
+  // Ensure content is perfectly centered
+  .combo-btn__content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+  
+  // Center icon perfectly
+  .combo-btn__icon {
+    margin: 0 !important; // Remove any margin from lead/trail modifiers
+  }
+  
+  // Center loading spinner
+  .combo-btn__spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+  
+  // Size-specific widths (must equal height)
+  &.combo-btn--sm {
+    width: $btn-height-sm;
+    min-width: $btn-height-sm;
+  }
+  
+  &.combo-btn--md {
+    width: $btn-height-md;
+    min-width: $btn-height-md;
+  }
+  
+  &.combo-btn--lg {
+    width: $btn-height-lg;
+    min-width: $btn-height-lg;
+  }
+  
+  // Ensure full-width doesn't apply to icon-only buttons
+  &.combo-btn--full-width {
+    width: auto;
+    min-width: auto;
+  }
+}

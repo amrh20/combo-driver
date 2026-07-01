@@ -1,0 +1,91 @@
+@use 'assets/styles/fonts';
+@use 'assets/styles/foundation/themes';
+@use 'assets/styles/mixins/dimensions';
+@use 'assets/styles/mixins/spacing';
+@use 'assets/styles/mixins/borders';
+@use 'assets/styles/mixins/effects';
+@use 'assets/styles/mixins/typography';
+@use 'assets/styles/mixins/positions';
+@use 'assets/styles/mixins/lineheight';
+@use 'assets/styles/components/paginator' as *;
+@use 'assets/styles/components/auth-otp-dialog';
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Alexandria', sans-serif;
+  font-weight: 300;
+  background-color: var(--Combo-bg-background-body);
+  color: var(--Combo-text-text-default);
+  transition: background-color 0.3s ease;
+  overflow-x: hidden;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+[dir='ltr'] .flp-ltr {
+  transform: scaleX(-1);
+}
+
+.driver-page {
+  width: min(100%, 991px);
+  min-height: 100dvh;
+  margin-inline: auto;
+  background: var(--Combo-bg-background-body);
+}
+
+.driver-card {
+  background: var(--Combo-bg-background-white);
+  border: 1px solid var(--Combo-border-border-neutral-secondary);
+  border-radius: 24px;
+  box-shadow: 0 16px 40px var(--Combo-alpha-alpha-black-10);
+}
+
+.driver-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    color: var(--Combo-text-text-default);
+    font-weight: 600;
+  }
+
+  input {
+    min-height: 56px;
+    border: 1px solid var(--Combo-form-field-border-default);
+    border-radius: 16px;
+    background: var(--Combo-form-field-background-default);
+    color: var(--Combo-form-field-text-filled);
+    padding: 0 18px;
+    outline: none;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &::placeholder {
+      color: var(--Combo-text-text-secondary-paragraph);
+    }
+
+    &:focus {
+      background: var(--Combo-form-field-background-lighter);
+      border-color: var(--Combo-form-field-border-pressed);
+      box-shadow: 0 0 0 4px var(--Combo-alpha-Alpha-primary-10);
+    }
+  }
+}

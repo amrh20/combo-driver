@@ -1,0 +1,84 @@
+---
+description: Permanent and strict standard for the Combo Design System. All components and pages must adhere to these rules.
+globs: 
+alwaysApply: true
+---
+
+# Combo Design System – Cursor Rules
+
+This file is the **permanent and strict standard** for this repository. All frontend work (components, pages, styles) must follow these guidelines.
+
+---
+
+## 1. Framework & Architecture (Angular)
+
+- Use **Angular Standalone Components** only (`standalone: true`).
+- Use **modern Angular Control Flow** syntax: `@if`, `@for`, `@switch` instead of `*ngIf`, `*ngFor`, `*ngSwitch`.
+- Prefer **`inject()`** for dependency injection over constructor injection.
+- Implement proper lifecycle hooks and interfaces (e.g. `OnInit`, `ControlValueAccessor` for form inputs).
+
+---
+
+## 2. Design System & Shared Components
+
+- **Always check** `src/app/shared/components/` for existing components (e.g. `combo-button`, `combo-input`, `combo-radio`, `shop-card`) before creating new raw HTML or PrimeNG elements.
+- **Prefix** new custom components with `combo-` (e.g. `combo-checkbox`, `combo-select`).
+- **Design aesthetic:** Keep a clean, minimalist design. Avoid colorful or busy backgrounds; action boxes and main containers must use a clean white background or specified neutral design tokens.
+
+---
+
+## 3. Mandatory UI/UX Rules
+
+### Icons
+- **Never use generic gift icons.** Always use the **specific app icon** for the feature or context (e.g. app-defined gift/promo icon from assets).
+
+### Backgrounds
+- **Action boxes must strictly have a white background.** Use design tokens (e.g. `var(--Combo-bg-background-white)` or equivalent).
+- Maintain a clean design by **completely avoiding colorful or busy backgrounds** for main content areas and action containers.
+
+### Typography & Headers
+- **Welcome messages and header titles** must strictly use **primary, black, and light gray** colors from the design tokens (e.g. `var(--Combo-text-text-primary)`, `var(--Combo-text-text-default)`, neutral/light gray tokens).
+- Do not introduce arbitrary or decorative colors for headings and welcome text.
+
+---
+
+## 4. CSS/SCSS Styling & Methodology
+
+- Use **SCSS only** for styling.
+- **Prefer Bootstrap utilities and Combo mixins** to minimize custom SCSS:
+  - Use `d-flex`, `flex-column`, `align-items-*`, `justify-content-*`, `gap-*`, `position-absolute`, etc. (Bootstrap)
+  - Use `combo-p-*`, `combo-m-*`, `combo-fs-*`, `combo-br-*`, `combo-w-*`, `combo-he-*`, `font-bold`, `font-medium` (from `src/assets/styles/mixins/`)
+  - Keep SCSS only for: design tokens (colors, borders), hover/active/disabled states, line-clamp, transitions, and properties not covered by utilities.
+- Follow **BEM (Block Element Modifier)** for custom HTML when adding component-specific classes:
+  - Block: `.shop-card`
+  - Element: `.shop-card__logo-wrapper`
+  - Modifier: `.shop-card--active`
+- **No hardcoded colors or sizes.** Use CSS variables from Design Tokens only, e.g.:
+  - `var(--Combo-text-text-primary)`
+  - `var(--Combo-bg-background-white)`
+  - `var(--Combo-primary, #00846A)` when a fallback is required.
+- **Avoid `::ng-deep`** on custom elements. Use it **only** when overriding third-party libraries (e.g. PrimeNG).
+
+---
+
+## 5. PrimeNG Usage & Overrides
+
+- Assume PrimeNG may run in **Unstyled Mode** or with Tailwind resets.
+- When styling/overriding PrimeNG:
+  1. Wrap overrides in **`:host ::ng-deep { ... }`**.
+  2. Prefer **data attributes** for targeting where possible (e.g. `[data-pc-section="page"]`, `[data-p-highlight="true"]`) in addition to or instead of generic classes like `.p-paginator-page`.
+  3. Use **`!important`** only when necessary to override PrimeNG’s default theme.
+
+---
+
+## 6. Component Fallbacks & States
+
+- Implement **graceful fallbacks** (e.g. missing image/logo: show a circle with the first two initials of the name).
+- Handle **all states**: Default, Hover, Active/Checked, Disabled.
+
+---
+
+## 7. Response & Code Quality
+
+- When creating or updating a component, provide **`.ts`**, **`.html`**, and **`.scss`** clearly separated.
+- Keep code **clean**, **well-commented**, and **free of unnecessary console logs**.

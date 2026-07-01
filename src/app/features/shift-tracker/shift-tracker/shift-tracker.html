@@ -1,0 +1,108 @@
+<section class="shift-screen">
+  <div class="shift-screen__intro combo-mb-12">
+    <p class="shift-screen__eyebrow combo-fs-12 font-bold combo-mb-8">الشيفت</p>
+    <h2 class="shift-screen__title font-kufam combo-fs-24 font-bold combo-m-0">
+      تتبع ساعات العمل
+    </h2>
+  </div>
+
+  <div class="shift-filters">
+    <div class="shift-filters__scroll" aria-label="تصفية حسب الوقت">
+      <div class="shift-filters__chips">
+        <button
+          type="button"
+          class="shift-filters__chip combo-fs-13 font-bold"
+          [class.shift-filters__chip--active]="isTimeFilterActive('today')"
+          (click)="selectTimeFilter('today')"
+        >
+          اليوم
+        </button>
+        <button
+          type="button"
+          class="shift-filters__chip combo-fs-13 font-bold"
+          [class.shift-filters__chip--active]="isTimeFilterActive('week')"
+          (click)="selectTimeFilter('week')"
+        >
+          هذا الأسبوع
+        </button>
+        <button
+          type="button"
+          class="shift-filters__chip combo-fs-13 font-bold"
+          [class.shift-filters__chip--active]="isTimeFilterActive('month')"
+          (click)="selectTimeFilter('month')"
+        >
+          هذا الشهر
+        </button>
+        <button
+          type="button"
+          class="shift-filters__chip combo-fs-13 font-bold"
+          [class.shift-filters__chip--active]="isTimeFilterActive('all')"
+          (click)="selectTimeFilter('all')"
+        >
+          الكل
+        </button>
+      </div>
+    </div>
+
+    <article class="shift-summary driver-card combo-p-16" aria-live="polite">
+      <span class="shift-summary__label combo-fs-13 font-bold">إجمالي ساعات العمل</span>
+      <strong class="shift-summary__value font-kufam combo-fs-28 font-bold combo-m-0">
+        {{ filteredSummary().totalLabel }}
+      </strong>
+      <p class="shift-summary__meta combo-fs-12 combo-m-0">
+        {{ filteredSummary().sessionCount }} جلسة عمل
+      </p>
+    </article>
+  </div>
+
+  <div class="shift-list d-flex flex-column gap-3">
+    @if (filteredSessions().length === 0) {
+      <article class="shift-empty driver-card combo-p-24">
+        <p class="shift-empty__text combo-fs-14 combo-m-0">لا توجد جلسات عمل في الفترة المحددة.</p>
+      </article>
+    } @else {
+      @for (session of filteredSessions(); track session.id) {
+        <article
+          class="shift-item driver-card combo-p-16"
+          [class.shift-item--active]="isActiveSession(session)"
+        >
+          <div class="shift-item__header d-flex align-items-center justify-content-between gap-3 combo-mb-12">
+            <h3 class="shift-item__date combo-fs-15 font-bold combo-m-0">{{ session.date }}</h3>
+            @if (isActiveSession(session)) {
+              <span class="shift-item__badge combo-fs-11 font-bold">
+                <span class="shift-item__badge-dot" aria-hidden="true"></span>
+                جاري العمل...
+              </span>
+            } @else {
+              <span class="shift-item__duration combo-fs-12 font-bold">
+                {{ sessionDuration(session) }}
+              </span>
+            }
+          </div>
+
+          <div class="shift-item__timeline d-grid gap-2">
+            <div class="shift-item__row">
+              <span class="shift-item__label combo-fs-12">تسجيل الدخول</span>
+              <strong class="shift-item__time combo-fs-14 font-bold">
+                {{ formatClockTime(session.startTime) }}
+              </strong>
+            </div>
+
+            <div class="shift-item__row">
+              <span class="shift-item__label combo-fs-12">تسجيل الخروج</span>
+              @if (isActiveSession(session)) {
+                <strong class="shift-item__time shift-item__time--active combo-fs-14 font-bold">
+                  جاري العمل...
+                </strong>
+              } @else {
+                <strong class="shift-item__time combo-fs-14 font-bold">
+                  {{ formatClockTime(session.endTime!) }}
+                </strong>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    }
+  </div>
+</section>

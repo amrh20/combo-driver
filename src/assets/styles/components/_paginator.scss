@@ -1,0 +1,97 @@
+// Combo paginator – خلفية شفافة، الصفحة النشطة بلون البرايمري.
+// Use: <p-paginator class="combo-paginator" ... />
+
+.combo-paginator.p-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 1rem 0;
+  background: transparent !important;
+  border: none;
+  min-height: auto;
+
+  .p-paginator-content-start,
+  .p-paginator-current,
+  .p-paginator-rpp-dropdown,
+  .p-paginator-content-end {
+    display: none;
+  }
+
+  .p-paginator-prev,
+  .p-paginator-next {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: auto;
+    height: auto;
+    padding: 0.25rem 0.5rem;
+    background: transparent !important;
+    border: none;
+    color: var(--Combo-text-text-default, #000);
+    cursor: pointer;
+    border-radius: 0;
+
+    &:hover:not(:disabled) {
+      color: var(--Combo-text-text-default, #000);
+    }
+
+    &:disabled {
+      color: var(--Combo-global-text-default-disabled, #9daeae);
+      cursor: default;
+    }
+
+    .p-paginator-prev-icon,
+    .p-paginator-next-icon {
+      display: block;
+      width: 1rem;
+      height: 1rem;
+      font-size: 1.25rem;
+      line-height: 1;
+      color: inherit;
+    }
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+      fill: currentColor;
+    }
+  }
+
+  .p-paginator-pages {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .p-paginator-page {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    background: transparent !important;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    color: var(--Combo-text-text-default, #000);
+    font: inherit;
+    font-weight: 400;
+    cursor: pointer;
+    box-shadow: none;
+
+    &:hover:not(.p-paginator-page-selected):not(.p-highlight) {
+      color: var(--Combo-text-text-default, #000);
+    }
+
+    &.p-paginator-page-selected,
+    &.p-highlight {
+      font-weight: 600;
+      color: var(--Combo-text-text-default, #000) !important;
+      background: transparent !important;
+      border-bottom: 3px solid var(--Combo-button-button-background-primary-default) !important;
+      box-shadow: none;
+    }
+  }
+}

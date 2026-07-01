@@ -1,0 +1,79 @@
+@if (link && isExternalLink) {
+  <a
+    [attr.href]="link"
+    [target]="target"
+    [rel]="target === '_blank' ? 'noopener noreferrer' : null"
+    [class]="buttonClasses"
+    [attr.aria-disabled]="isDisabled()"
+    [attr.aria-label]="computedAriaLabel"
+    [style.font-size]="customFontSize || null"
+    [style.color]="customTextColor || null"
+  >
+    <ng-container *ngTemplateOutlet="btnContent"></ng-container>
+  </a>
+} @else if (link) {
+  <a
+    [routerLink]="link"
+    [target]="target"
+    [class]="buttonClasses"
+    [attr.aria-disabled]="isDisabled()"
+    [attr.aria-label]="computedAriaLabel"
+    [style.font-size]="customFontSize || null"
+    [style.color]="customTextColor || null"
+  >
+    <ng-container *ngTemplateOutlet="btnContent"></ng-container>
+  </a>
+} @else {
+  <button
+    [type]="type"
+    [class]="buttonClasses"
+    [disabled]="isDisabled()"
+    [attr.aria-disabled]="isDisabled()"
+    [attr.aria-busy]="loading"
+    [attr.aria-label]="computedAriaLabel"
+    [style.font-size]="customFontSize || null"
+    [style.color]="customTextColor || null"
+    (click)="handleClick($event)"
+  >
+    <ng-container *ngTemplateOutlet="btnContent"></ng-container>
+  </button>
+}
+
+<ng-template #btnContent>
+  @if (_loading()) {
+    <span class="combo-btn__spinner" aria-hidden="true">
+      <svg class="combo-btn__spinner-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle class="combo-btn__spinner-track" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+        <circle class="combo-btn__spinner-head" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+      </svg>
+    </span>
+  }
+
+  <span class="combo-btn__content" [class.combo-btn__content--hidden]="_loading()">
+    @if (leadIcon && (!isIconOnly || !trailIcon)) {
+      <svg-icon
+        [src]="leadIcon"
+        [svgClass]="'combo-btn__icon combo-btn__icon--lead'"
+        [svgStyle]="svgIconStyle"
+        [applyClass]="true"
+        [attr.aria-hidden]="true"
+      ></svg-icon>
+    }
+
+    @if (!isIconOnly) {
+      <span class="combo-btn__label">
+        <ng-content></ng-content>
+      </span>
+    }
+
+    @if (trailIcon && (!isIconOnly || !leadIcon)) {
+      <svg-icon
+        [src]="trailIcon"
+        [svgClass]="'combo-btn__icon combo-btn__icon--trail' + (flipLtr ? ' flp-ltr' : '')"
+        [svgStyle]="svgIconStyle"
+        [applyClass]="true"
+        [attr.aria-hidden]="true"
+      ></svg-icon>
+    }
+  </span>
+</ng-template>
