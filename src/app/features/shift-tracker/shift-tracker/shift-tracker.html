@@ -46,11 +46,11 @@
 
     <article class="shift-summary driver-card combo-p-16" aria-live="polite">
       <span class="shift-summary__label combo-fs-13 font-bold">إجمالي ساعات العمل</span>
-      <strong class="shift-summary__value font-kufam combo-fs-28 font-bold combo-m-0">
+      <strong class="shift-summary__value font-numerals combo-fs-28 font-bold combo-m-0">
         {{ filteredSummary().totalLabel }}
       </strong>
       <p class="shift-summary__meta combo-fs-12 combo-m-0">
-        {{ filteredSummary().sessionCount }} جلسة عمل
+        <span class="font-numerals">{{ filteredSummary().sessionCount }}</span> جلسة عمل
       </p>
     </article>
   </div>
@@ -74,7 +74,7 @@
                 جاري العمل...
               </span>
             } @else {
-              <span class="shift-item__duration combo-fs-12 font-bold">
+              <span class="shift-item__duration font-numerals combo-fs-12 font-semibold">
                 {{ sessionDuration(session) }}
               </span>
             }
@@ -83,7 +83,7 @@
           <div class="shift-item__timeline d-grid gap-2">
             <div class="shift-item__row">
               <span class="shift-item__label combo-fs-12">تسجيل الدخول</span>
-              <strong class="shift-item__time combo-fs-14 font-bold">
+              <strong class="shift-item__time font-numerals combo-fs-14 font-semibold">
                 {{ formatClockTime(session.startTime) }}
               </strong>
             </div>
@@ -95,7 +95,7 @@
                   جاري العمل...
                 </strong>
               } @else {
-                <strong class="shift-item__time combo-fs-14 font-bold">
+                <strong class="shift-item__time font-numerals combo-fs-14 font-semibold">
                   {{ formatClockTime(session.endTime!) }}
                 </strong>
               }

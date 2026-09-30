@@ -64,9 +64,9 @@
     </div>
 
     <p class="history-filters__summary combo-fs-13 font-bold combo-m-0" aria-live="polite">
-      عدد الطلبات: {{ filteredSummary().orderCount }}
+      عدد الطلبات: <span class="font-numerals">{{ filteredSummary().orderCount }}</span>
       <span class="history-filters__summary-sep" aria-hidden="true">|</span>
-      إجمالي الأرباح: {{ formatProfit(filteredSummary().totalProfit) }}
+      إجمالي الأرباح: <span class="font-numerals">{{ formatProfit(filteredSummary().totalProfit) }}</span>
     </p>
   </div>
 
@@ -94,9 +94,9 @@
           <div class="history-item__profit">
             <span class="combo-fs-11 font-bold">ربح السائق</span>
             @if (isCancelled(order)) {
-              <strong class="combo-fs-18 font-kufam">—</strong>
+              <strong class="font-numerals combo-fs-18 font-semibold">—</strong>
             } @else {
-              <strong class="combo-fs-18 font-kufam">{{ formatProfit(order.profit) }}</strong>
+              <strong class="font-numerals combo-fs-18 font-semibold">{{ formatProfit(order.profit) }}</strong>
             }
           </div>
         </article>

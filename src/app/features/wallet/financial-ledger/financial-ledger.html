@@ -60,13 +60,13 @@
     <div class="ledger-summary__grid">
       <div class="ledger-summary__item">
         <span class="combo-fs-12">إضافات</span>
-        <strong class="ledger-summary__value ledger-summary__value--positive combo-fs-16 font-bold">
+        <strong class="ledger-summary__value ledger-summary__value--positive font-numerals combo-fs-16 font-semibold">
           +{{ formatMoney(periodSummary().credits) }}
         </strong>
       </div>
       <div class="ledger-summary__item">
         <span class="combo-fs-12">خصومات</span>
-        <strong class="ledger-summary__value ledger-summary__value--negative combo-fs-16 font-bold">
+        <strong class="ledger-summary__value ledger-summary__value--negative font-numerals combo-fs-16 font-semibold">
           −{{ formatMoney(periodSummary().debits) }}
         </strong>
       </div>
@@ -92,7 +92,7 @@
                 <h3 class="ledger-item__title combo-fs-15 font-bold combo-m-0">{{ txn.description }}</h3>
               </div>
               <strong
-                class="ledger-item__amount combo-fs-15 font-bold"
+                class="ledger-item__amount font-numerals combo-fs-15 font-semibold"
                 [class.ledger-item__amount--positive]="amountTone(txn.type) === 'positive'"
                 [class.ledger-item__amount--negative]="amountTone(txn.type) === 'negative'"
               >

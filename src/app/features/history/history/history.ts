@@ -1,11 +1,12 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 
+import { HistoryService } from '../../../core/services/history.service';
 import {
   CompletedDriverOrder,
   HistoryOrderStatus,
   HistoryTimeFilter,
-  completedDriverOrders,
-} from '../../../core/mocks/driver.mock';
+} from '../../../core/models';
+import { formatMoney } from '../../../shared/utils/format';
 
 @Component({
   selector: 'app-history',
@@ -14,7 +15,7 @@ import {
   styleUrl: './history.scss',
 })
 export class History {
-  private readonly orders = completedDriverOrders;
+  private readonly historyService = inject(HistoryService);
 
   readonly activeTimeFilter = signal<HistoryTimeFilter>('today');
   readonly activeStatusFilter = signal<HistoryOrderStatus>('COMPLETED');
@@ -24,7 +25,8 @@ export class History {
     const statusFilter = this.activeStatusFilter();
     const range = this.getTimeRange(timeFilter);
 
-    return this.orders
+    return this.historyService
+      .historyOrders()
       .filter((order) => order.status === statusFilter)
       .filter((order) => {
         if (!range) {
@@ -64,9 +66,7 @@ export class History {
     return this.activeStatusFilter() === filter;
   }
 
-  formatProfit(value: number): string {
-    return `${value.toLocaleString('ar-EG')} ج.م`;
-  }
+  formatProfit = formatMoney;
 
   statusLabel(status: HistoryOrderStatus): string {
     return status === 'COMPLETED' ? 'مكتمل' : 'ملغي';

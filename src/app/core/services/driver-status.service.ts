@@ -1,6 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-import { ShiftSession, mockShiftSessions } from '../mocks/driver.mock';
+import { mockShiftSessions } from '../mocks/driver.mock';
+import { ShiftSession } from '../models';
 
 @Injectable({
   providedIn: 'root',

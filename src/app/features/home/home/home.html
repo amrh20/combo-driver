@@ -27,18 +27,50 @@
 
       @if (isOnline() && hasIncomingOrder()) {
         <section class="incoming-order driver-card combo-p-24">
-          <p class="incoming-order__tag combo-fs-12 font-bold combo-mb-12">طلب وارد من Consolidation Hub</p>
+          <p class="incoming-order__tag combo-fs-12 font-bold combo-mb-12">طلب وارد جديد</p>
           <h3 class="incoming-order__title font-kufam combo-fs-22 font-bold combo-mb-16">
-            {{ order.id }}
+            {{ order().id }}
           </h3>
 
-          <div class="incoming-order__meta">
-            <span>{{ order.vendorsCount }} متاجر</span>
-            <span>{{ order.bagsCount }} شنط</span>
-            <span>{{ order.distanceKm }} كم</span>
+          <div class="incoming-order__meta combo-mb-16">
+            <div class="incoming-order__meta-item">
+              <span class="incoming-order__meta-value font-numerals combo-fs-18 font-bold">
+                {{ formatNumber(order().vendorsCount) }}
+              </span>
+              <span class="incoming-order__meta-label combo-fs-12">المتاجر</span>
+            </div>
+            <div class="incoming-order__meta-item">
+              <span class="incoming-order__meta-value font-numerals combo-fs-18 font-bold">
+                {{ formatNumber(order().totalDistance) }}
+              </span>
+              <span class="incoming-order__meta-label combo-fs-12">المسافة · كم</span>
+            </div>
+            <div class="incoming-order__meta-item incoming-order__meta-item--earnings">
+              <span class="incoming-order__meta-value incoming-order__meta-value--earnings font-numerals combo-fs-18 font-bold">
+                {{ formatMoney(order().expectedEarnings) }}
+              </span>
+              <span class="incoming-order__meta-label combo-fs-12">أرباح التوصيل</span>
+            </div>
           </div>
 
-          <div class="incoming-order__actions d-grid gap-3 combo-mt-24">
+          <div class="incoming-order__details d-flex flex-column gap-2 combo-mb-24">
+            <div class="incoming-order__detail-row">
+              <span class="combo-fs-13">نقطة التجميع</span>
+              <span class="combo-fs-13 font-semibold">{{ order().pickupHubName }}</span>
+            </div>
+            <div class="incoming-order__detail-row">
+              <span class="combo-fs-13">منطقة التسليم</span>
+              <span class="combo-fs-13 font-semibold">{{ order().dropoffArea }}</span>
+            </div>
+            <div class="incoming-order__detail-row incoming-order__detail-row--cash">
+              <span class="combo-fs-13">الكاش المطلوب تحصيله</span>
+              <span class="incoming-order__cash-value font-numerals combo-fs-14 font-bold">
+                {{ formatMoney(order().finalCashTotal) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="incoming-order__actions d-grid gap-3">
             <combo-button size="lg" [fullWidth]="true" (clicked)="acceptOrder()">قبول الطلب</combo-button>
             <combo-button variant="outline" color="danger" size="lg" [fullWidth]="true" (clicked)="rejectOrder()">رفض</combo-button>
           </div>
@@ -50,18 +82,163 @@
       <section class="trip-card driver-card combo-p-24">
         <span class="trip-card__step combo-fs-12 font-bold combo-br-pill">الخطوة 1</span>
         <h3 class="trip-card__title font-kufam combo-fs-24 font-bold combo-mt-16 combo-mb-12">
-          توجه إلى الهب
+          استلام الطلبات من المتاجر
         </h3>
-        <p class="trip-card__name combo-fs-18 font-bold combo-mb-8">{{ order.hub.name }}</p>
-        <p class="trip-card__text combo-fs-14 combo-mb-16">{{ order.hub.address }}</p>
 
-        <div class="trip-card__info d-flex flex-column gap-2 combo-mb-24">
-          <span>موعد الاستلام: {{ order.hub.pickupWindow }}</span>
-          <span>رقم الهب: {{ order.hub.contactPhone }}</span>
+        <div class="trip-card__address-row d-flex align-items-start gap-3 combo-mb-16">
+          <div class="trip-card__address-copy flex-grow-1">
+            <p class="trip-card__name combo-fs-18 font-bold combo-mb-8">{{ order().hub.name }}</p>
+            <p class="trip-card__text combo-fs-14 combo-m-0">{{ order().hub.address }}</p>
+          </div>
+          <button
+            type="button"
+            class="nav-fab"
+            aria-label="فتح خرائط جوجل للهب"
+            (click)="openNavigation(order().hub.lat, order().hub.lng)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 21s7-5.33 7-11a7 7 0 1 0-14 0c0 5.67 7 11 7 11Z"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+              <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.6" />
+            </svg>
+          </button>
         </div>
 
-        <combo-button size="lg" [fullWidth]="true" (clicked)="markPickedUp()">
-          تم استلام الطلب
+        <div class="trip-card__info d-flex flex-column gap-2 combo-mb-20">
+          <span>موعد الاستلام: {{ order().hub.pickupWindow }}</span>
+          <span>رقم الهب: {{ order().hub.contactPhone }}</span>
+          <span>
+            التقدم:
+            <span class="font-numerals font-bold">
+              {{ formatNumber(pickedUpShopCount()) }} / {{ formatNumber(order().subOrders.length) }}
+            </span>
+            متاجر
+          </span>
+        </div>
+
+        <ul class="shop-checklist d-flex flex-column gap-3 combo-mb-24" aria-label="قائمة استلام المتاجر">
+          @for (shop of order().subOrders; track shop.shopId) {
+            <li
+              class="shop-checklist__item"
+              [class.shop-checklist__item--done]="shop.status === 'PICKED_UP'"
+            >
+              <div class="shop-checklist__body d-flex align-items-start gap-3">
+                <div class="shop-checklist__copy flex-grow-1">
+                  <p class="shop-checklist__name combo-fs-15 font-bold combo-mb-4">
+                    {{ shop.shopName }}
+                  </p>
+                  <div class="shop-checklist__meta-row d-flex align-items-center flex-wrap gap-2">
+                    <p class="shop-checklist__meta combo-fs-12 combo-m-0">
+                      <span class="font-numerals">{{ formatNumber(shop.itemsCount) }}</span>
+                      عنصر
+                      ·
+                      {{ shop.status === 'PICKED_UP' ? 'تم الاستلام' : 'بانتظار الاستلام' }}
+                    </p>
+                    <button
+                      type="button"
+                      class="shop-checklist__details-toggle combo-fs-12 font-medium"
+                      [attr.aria-expanded]="isShopExpanded(shop.shopId)"
+                      [attr.aria-controls]="'shop-items-' + shop.shopId"
+                      (click)="toggleShopDetails(shop.shopId)"
+                    >
+                      <span>{{ isShopExpanded(shop.shopId) ? 'إخفاء التفاصيل' : 'عرض التفاصيل' }}</span>
+                      <svg
+                        class="shop-checklist__chevron"
+                        [class.shop-checklist__chevron--open]="isShopExpanded(shop.shopId)"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M5 7.5 10 12.5 15 7.5"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  class="nav-fab nav-fab--sm"
+                  [attr.aria-label]="'فتح خرائط جوجل لـ ' + shop.shopName"
+                  (click)="openNavigation(shop.location.lat, shop.location.lng)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 21s7-5.33 7-11a7 7 0 1 0-14 0c0 5.67 7 11 7 11Z"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                    />
+                    <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.6" />
+                  </svg>
+                </button>
+              </div>
+
+              <div
+                class="shop-checklist__panel"
+                [class.shop-checklist__panel--open]="isShopExpanded(shop.shopId)"
+                [id]="'shop-items-' + shop.shopId"
+                [attr.aria-hidden]="!isShopExpanded(shop.shopId)"
+              >
+                <div class="shop-checklist__panel-inner">
+                  <div class="shop-items">
+                    <ul class="shop-items__list" role="list">
+                      @for (item of shop.items; track item.id) {
+                        <li class="shop-items__row combo-fs-13">
+                          <span class="shop-items__label d-flex align-items-baseline gap-2">
+                            <span class="shop-items__qty font-numerals font-bold">
+                              {{ formatNumber(item.quantity) }}×
+                            </span>
+                            <span class="shop-items__name">{{ item.name }}</span>
+                          </span>
+                          <span class="shop-items__price font-numerals font-medium">
+                            {{ formatMoney(item.quantity * item.price) }}
+                          </span>
+                        </li>
+                      }
+                    </ul>
+                    <div class="shop-items__subtotal d-flex justify-content-between align-items-center">
+                      <span class="shop-items__subtotal-label combo-fs-13 font-bold">إجمالي المتجر</span>
+                      <span class="shop-items__subtotal-value font-numerals combo-fs-14 font-bold">
+                        {{ formatMoney(shop.shopSubtotal) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="shop-checklist__action combo-mt-12">
+                @if (shop.status === 'PICKED_UP') {
+                  <span class="shop-checklist__done-badge combo-fs-12 font-bold">✓ تم الاستلام</span>
+                } @else {
+                  <combo-button
+                    variant="outline"
+                    size="sm"
+                    [fullWidth]="true"
+                    (clicked)="markShopPickedUp(shop.shopId)"
+                  >
+                    تأكيد استلام المتجر
+                  </combo-button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+
+        <combo-button
+          size="lg"
+          [fullWidth]="true"
+          [disabled]="!allShopsPickedUp()"
+          (clicked)="markPickedUp()"
+        >
+          بدء التوصيل للعميل
         </combo-button>
       </section>
     }
@@ -75,7 +252,7 @@
 
         <div class="trip-card__map combo-mb-12">
           <span class="font-bold">Map Placeholder</span>
-          <small>ETA {{ order.etaMinutes }} دقيقة</small>
+          <small>ETA <span class="font-numerals">{{ formatNumber(order().etaMinutes) }}</span> دقيقة</small>
         </div>
 
         <div class="order-summary combo-p-10 combo-mb-12" aria-label="ملخص الطلب">
@@ -91,7 +268,7 @@
               </svg>
               <div class="order-summary__content">
                 <span class="order-summary__label combo-fs-11">رقم الطلب</span>
-                <span class="order-summary__value combo-fs-12 font-bold">#{{ order.id }}</span>
+                <span class="order-summary__value combo-fs-12 font-bold">#{{ order().id }}</span>
               </div>
             </div>
 
@@ -103,8 +280,8 @@
               </svg>
               <div class="order-summary__content">
                 <span class="order-summary__label combo-fs-11">المطلوب تحصيله</span>
-                <span class="order-summary__value order-summary__value--cash combo-fs-12 font-bold">
-                  {{ order.cashToCollect }} ج.م
+                <span class="order-summary__value order-summary__value--cash font-numerals combo-fs-12 font-semibold">
+                  {{ formatMoney(order().finalCashTotal) }}
                 </span>
               </div>
             </div>
@@ -127,18 +304,40 @@
               <div class="order-summary__content">
                 <span class="order-summary__label combo-fs-11">حجم الطلب</span>
                 <span class="order-summary__value combo-fs-12 font-bold">
-                  {{ order.vendorsCount }} متاجر - {{ order.itemsCount }} عنصر
+                  <span class="font-numerals">{{ formatNumber(order().vendorsCount) }}</span>
+                  متاجر -
+                  <span class="font-numerals">{{ formatNumber(order().itemsCount) }}</span>
+                  عنصر
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        <p class="trip-card__name combo-fs-18 font-bold combo-mb-8">{{ order.customer.name }}</p>
-        <p class="trip-card__text combo-fs-14 combo-mb-8">{{ order.customer.address }}</p>
-        <p class="trip-card__text combo-fs-13 combo-mb-16">علامة مميزة: {{ order.customer.landmark }}</p>
+        <div class="trip-card__address-row d-flex align-items-start gap-3 combo-mb-8">
+          <div class="trip-card__address-copy flex-grow-1">
+            <p class="trip-card__name combo-fs-18 font-bold combo-mb-8">{{ order().customer.name }}</p>
+            <p class="trip-card__text combo-fs-14 combo-mb-8">{{ order().customer.address }}</p>
+            <p class="trip-card__text combo-fs-13 combo-m-0">علامة مميزة: {{ order().customer.landmark }}</p>
+          </div>
+          <button
+            type="button"
+            class="nav-fab"
+            aria-label="فتح خرائط جوجل لموقع العميل"
+            (click)="openNavigation(order().customer.lat, order().customer.lng)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 21s7-5.33 7-11a7 7 0 1 0-14 0c0 5.67 7 11 7 11Z"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+              <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.6" />
+            </svg>
+          </button>
+        </div>
 
-        <div class="trip-card__actions d-flex flex-column gap-3">
+        <div class="trip-card__actions d-flex flex-column gap-3 combo-mt-16">
           <combo-button size="lg" [fullWidth]="true" (clicked)="markArrived()">
             وصلت لموقع العميل
           </combo-button>
@@ -159,7 +358,8 @@
       <section class="collection-card combo-p-24">
         <p class="collection-card__label combo-fs-14 font-bold combo-mb-12">التحصيل النهائي</p>
         <h3 class="collection-card__amount font-kufam font-black combo-mb-12">
-          برجاء تحصيل {{ order.cashToCollect }} ج.م
+          برجاء تحصيل
+          <span class="font-numerals">{{ formatMoney(order().finalCashTotal) }}</span>
         </h3>
         <p class="collection-card__text combo-fs-14 combo-mb-28">
           سلّم الطلب للعميل بعد التحصيل النقدي وتأكيد الاستلام.
@@ -199,9 +399,17 @@
         <h3 class="issue-reported__title font-kufam combo-fs-22 font-bold combo-mb-12">
           تم تعليق الطلب
         </h3>
-        <p class="issue-reported__message combo-fs-15 combo-m-0">
-          تم تعليق الطلب، يرجى انتظار تواصل الدعم
+        <p class="issue-reported__message combo-fs-15 combo-mb-8">
+          تم تسجيل المشكلة بدون إضافة أي مبالغ للمحفظة أو الأرباح.
         </p>
+        @if (reportedIssueLabel(); as label) {
+          <p class="issue-reported__reason combo-fs-13 font-medium combo-mb-24">
+            السبب: {{ label }}
+          </p>
+        }
+        <combo-button size="lg" [fullWidth]="true" (clicked)="resolveFailedDelivery()">
+          إنهاء الطلب والعودة
+        </combo-button>
       </section>
     }
   }
@@ -214,7 +422,7 @@
   (closed)="closeIssueSheet()"
 >
   <p class="issue-sheet__hint combo-fs-14 combo-mb-16">
-    اختر سبب المشكلة لمساعدة فريق الدعم على اتخاذ الإجراء المناسب.
+    اختر سبب المشكلة. لن يتم إضافة كاش أو أرباح عند إلغاء التوصيل.
   </p>
 
   <div class="issue-sheet__options d-flex flex-column gap-3 combo-mb-24" role="radiogroup" aria-label="أسباب مشاكل التسليم">

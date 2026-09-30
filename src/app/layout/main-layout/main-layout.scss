@@ -50,6 +50,7 @@
     justify-content: center;
     gap: 4px;
     border-radius: 18px;
+    font-family: 'Alexandria', sans-serif;
     color: var(--Combo-text-text-secondary-paragraph);
     transition:
       background-color 0.2s ease,
@@ -61,7 +62,16 @@
     color: var(--Combo-text-text-primary);
   }
 
+  &__nav-label {
+    font-family: 'Alexandria', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
   &__nav-hint {
+    font-family: 'Alexandria', sans-serif;
+    font-weight: 400;
     opacity: 0.75;
   }
 }

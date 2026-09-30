@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 
 import { DriverWalletService } from '../../../core/services/driver-wallet.service';
 import { ComboButton } from '../../../shared/components';
+import { formatMoney } from '../../../shared/utils/format';
 
 type ConfirmAction = 'remit' | 'payout' | null;
 
@@ -39,17 +40,15 @@ export class Wallet {
   readonly confirmMessage = computed(() => {
     switch (this.pendingConfirm()) {
       case 'remit':
-        return `هل تم توريد ${this.formatMoney(this.unremittedCash())} للهب؟ سيتم تصفير العهدة الحالية.`;
+        return `هل تم توريد ${formatMoney(this.unremittedCash())} للهب؟ سيتم تصفير العهدة الحالية.`;
       case 'payout':
-        return `هل تم قبض ${this.formatMoney(this.netPayout())} من المستحقات؟ سيتم تصفير الصافي المستحق.`;
+        return `هل تم قبض ${formatMoney(this.netPayout())} من المستحقات؟ سيتم تصفير الصافي المستحق.`;
       default:
         return '';
     }
   });
 
-  formatMoney(value: number): string {
-    return `${value.toLocaleString('ar-EG')} ج.م`;
-  }
+  formatMoney = formatMoney;
 
   openRemitConfirm(): void {
     if (this.unremittedCash() <= 0) {

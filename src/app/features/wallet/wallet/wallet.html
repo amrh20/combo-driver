@@ -15,7 +15,7 @@
       <span class="wallet-card__badge combo-fs-11 font-bold">Company Cash</span>
     </div>
 
-    <strong class="wallet-card__value font-kufam combo-fs-36 font-bold combo-mb-8">
+    <strong class="wallet-card__value font-numerals combo-fs-36 font-bold combo-mb-8">
       {{ formatMoney(unremittedCash()) }}
     </strong>
     <p class="wallet-card__hint combo-fs-13 combo-mb-20">
@@ -44,17 +44,17 @@
     <ul class="wallet-card__breakdown combo-mb-16">
       <li class="wallet-card__row">
         <span class="combo-fs-14">أرباح التوصيل</span>
-        <strong class="combo-fs-14 font-bold">{{ formatMoney(earnings()) }}</strong>
+        <strong class="font-numerals combo-fs-14 font-semibold">{{ formatMoney(earnings()) }}</strong>
       </li>
       <li class="wallet-card__row">
         <span class="combo-fs-14">بونص</span>
-        <strong class="wallet-card__row-value--positive combo-fs-14 font-bold">
+        <strong class="wallet-card__row-value--positive font-numerals combo-fs-14 font-semibold">
           +{{ formatMoney(bonus()) }}
         </strong>
       </li>
       <li class="wallet-card__row">
         <span class="combo-fs-14">سلف خلال اليوم</span>
-        <strong class="wallet-card__row-value--negative combo-fs-14 font-bold">
+        <strong class="wallet-card__row-value--negative font-numerals combo-fs-14 font-semibold">
           −{{ formatMoney(advances()) }}
         </strong>
       </li>
@@ -62,7 +62,7 @@
 
     <div class="wallet-card__total combo-p-12 combo-mb-20">
       <span class="combo-fs-13 font-bold">إجمالي الصافي</span>
-      <strong class="wallet-card__value font-kufam combo-fs-28 font-bold combo-m-0">
+      <strong class="wallet-card__value font-numerals combo-fs-28 font-bold combo-m-0">
         {{ formatMoney(netPayout()) }}
       </strong>
     </div>

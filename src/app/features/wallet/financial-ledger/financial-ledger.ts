@@ -1,12 +1,9 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 
-import {
-  TRANSACTION_TYPE_LABELS,
-  Transaction,
-  TransactionType,
-  driverTransactions,
-} from '../../../core/mocks/driver.mock';
+import { TRANSACTION_TYPE_LABELS, LedgerTransaction, TransactionType } from '../../../core/models';
+import { DriverWalletService } from '../../../core/services/driver-wallet.service';
 import { ComboButton } from '../../../shared/components';
+import { formatMoney } from '../../../shared/utils/format';
 
 type PeriodFilter = 'today' | 'week' | 'month';
 
@@ -19,22 +16,24 @@ type AmountTone = 'positive' | 'negative' | 'neutral';
   styleUrl: './financial-ledger.scss',
 })
 export class FinancialLedger {
-  readonly transactions = driverTransactions;
+  private readonly wallet = inject(DriverWalletService);
+
   readonly periodFilter = signal<PeriodFilter>('today');
   readonly selectedDate = signal('');
 
   readonly filteredTransactions = computed(() => {
     const customDate = this.selectedDate();
+    const transactions = this.wallet.ledgerTransactions();
 
     if (customDate) {
       return this.sortTransactions(
-        this.transactions.filter((txn) => this.toDateKey(txn.occurredAt) === customDate)
+        transactions.filter((txn) => this.toDateKey(txn.occurredAt) === customDate)
       );
     }
 
     const range = this.getPeriodRange(this.periodFilter());
     return this.sortTransactions(
-      this.transactions.filter((txn) => {
+      transactions.filter((txn) => {
         const occurredAt = new Date(txn.occurredAt);
         return occurredAt >= range.start && occurredAt <= range.end;
       })
@@ -77,9 +76,7 @@ export class FinancialLedger {
     return TRANSACTION_TYPE_LABELS[type];
   }
 
-  formatMoney(value: number): string {
-    return `${value.toLocaleString('ar-EG')} ج.م`;
-  }
+  formatMoney = formatMoney;
 
   formatTime(occurredAt: string): string {
     return new Date(occurredAt).toLocaleTimeString('ar-EG', {
@@ -157,7 +154,7 @@ export class FinancialLedger {
     return `${year}-${month}-${day}`;
   }
 
-  private sortTransactions(transactions: Transaction[]): Transaction[] {
+  private sortTransactions(transactions: LedgerTransaction[]): LedgerTransaction[] {
     return [...transactions].sort(
       (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
     );

@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 
-import { ShiftSession, ShiftTimeFilter } from '../../../core/mocks/driver.mock';
+import { ShiftSession, ShiftTimeFilter } from '../../../core/models';
 import { DriverStatusService } from '../../../core/services/driver-status.service';
 
 @Component({

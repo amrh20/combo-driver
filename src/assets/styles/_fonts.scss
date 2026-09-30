@@ -81,7 +81,7 @@
 
 @font-face {
   font-family: 'KufamCombo';
-  src: url('../fonts/KufamCombo.otf') format('truetype');
+  src: url('../fonts/KufamCombo.otf') format('opentype');
   font-weight: 900;
   font-display: swap;
 }
@@ -89,14 +89,23 @@
 // Global font family variables
 $font-family-kufam: 'Kufam', sans-serif;
 $font-family-alexandria: 'Alexandria', sans-serif;
-
+$font-family-numerals: 'IBM Plex Sans', 'Alexandria', system-ui, sans-serif;
 
 // Utility Classes
 .font-kufam {
-  font-family: 'Kufam', sans-serif;
+  font-family: $font-family-kufam;
 }
 
 .font-alexandria {
-  font-family: 'Alexandria', sans-serif;
+  font-family: $font-family-alexandria;
+}
+
+// Clear tabular numerals for money / metrics (Latin digits)
+.font-numerals {
+  font-family: $font-family-numerals;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: 0.01em;
+  unicode-bidi: isolate;
 }
 

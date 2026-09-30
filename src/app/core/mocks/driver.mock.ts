@@ -1,20 +1,38 @@
-export type TripState =
-  | 'IDLE'
-  | 'HEADING_TO_HUB'
-  | 'HEADING_TO_CUSTOMER'
-  | 'COLLECTION'
-  | 'ISSUE_REPORTED';
+import {
+  ActiveDriverOrder,
+  CompletedDriverOrder,
+  DeliveryIssueOption,
+  DriverProfile,
+  LedgerTransaction,
+  ShiftSession,
+  TRANSACTION_TYPE_LABELS,
+} from '../models';
+import { formatArabicDate, formatArabicDateTime, relativeIso } from './date-helpers';
 
-export type DeliveryIssueType =
-  | 'CUSTOMER_UNREACHABLE'
-  | 'WRONG_GPS'
-  | 'CUSTOMER_REFUSED'
-  | 'VEHICLE_BREAKDOWN';
+export type {
+  ActiveDriverOrder,
+  CompletedDriverOrder,
+  CustomerDetails,
+  DeliveryIssueOption,
+  DeliveryIssueType,
+  DriverProfile,
+  DriverWalletState,
+  GeoCoordinates,
+  HistoryOrderStatus,
+  HistoryTimeFilter,
+  HubLocation,
+  LedgerTransaction,
+  SettlementBucket,
+  ShiftSession,
+  ShiftTimeFilter,
+  ShopSubOrder,
+  ShopSubOrderStatus,
+  Transaction,
+  TransactionType,
+  TripState,
+} from '../models';
 
-export interface DeliveryIssueOption {
-  type: DeliveryIssueType;
-  label: string;
-}
+export { TRANSACTION_TYPE_LABELS };
 
 export const DELIVERY_ISSUE_OPTIONS: DeliveryIssueOption[] = [
   { type: 'CUSTOMER_UNREACHABLE', label: 'العميل لا يرد / هاتفه مغلق' },
@@ -23,311 +41,169 @@ export const DELIVERY_ISSUE_OPTIONS: DeliveryIssueOption[] = [
   { type: 'VEHICLE_BREAKDOWN', label: 'عطل طارئ في المركبة' },
 ];
 
-export type TransactionType =
-  | 'ORDER_DELIVERY'
-  | 'CASH_COLLECTION'
-  | 'ADVANCE'
-  | 'BONUS'
-  | 'SETTLEMENT';
-
-export interface DriverProfile {
-  id: string;
-  name: string;
-  phone: string;
-  vehicle: string;
-  rating: number;
-}
-
-export interface HubLocation {
-  name: string;
-  address: string;
-  contactPhone: string;
-  pickupWindow: string;
-}
-
-export interface CustomerDetails {
-  name: string;
-  phone: string;
-  address: string;
-  landmark: string;
-}
-
-export interface ActiveDriverOrder {
-  id: string;
-  date: string;
-  hub: HubLocation;
-  customer: CustomerDetails;
-  vendorsCount: number;
-  itemsCount: number;
-  bagsCount: number;
-  cashToCollect: number;
-  deliveryFee: number;
-  distanceKm: number;
-  etaMinutes: number;
-}
-
-export type HistoryOrderStatus = 'COMPLETED' | 'CANCELLED';
-
-export type HistoryTimeFilter = 'today' | 'week' | 'month' | 'all';
-
-export type ShiftTimeFilter = HistoryTimeFilter;
-
-export interface ShiftSession {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string | null;
-  durationMinutes: number | null;
-}
-
-export interface CompletedDriverOrder {
-  id: string;
-  date: string;
-  occurredAt: string;
-  status: HistoryOrderStatus;
-  profit: number;
-}
-
-export interface DriverWalletState {
-  unremittedCash: number;
-  earnings: number;
-  bonus: number;
-  advances: number;
-}
-
-export interface Transaction {
-  id: string;
-  type: TransactionType;
-  amount: number;
-  description: string;
-  orderId?: string;
-  occurredAt: string;
-}
-
 export const driverProfile: DriverProfile = {
   id: 'DRV-1024',
   name: 'أحمد السائق',
   phone: '01000000000',
   vehicle: 'موتوسيكل - أ ب ج 456',
-  rating: 4.9
+  rating: 4.9,
 };
 
+/**
+ * Active in-flight order — intentionally excluded from history + ledger seeds
+ * to avoid double-counting when completeDelivery() records financial events.
+ */
 export const activeDriverOrder: ActiveDriverOrder = {
   id: 'CMB-24062',
-  date: '2026-07-01',
+  date: relativeIso(0, 14, 0),
   hub: {
     name: 'Combo Hub - التجمع',
     address: 'شارع التسعين الشمالي، أمام بوابة 6',
     contactPhone: '01112223334',
-    pickupWindow: 'خلال 12 دقيقة'
+    pickupWindow: 'خلال 12 دقيقة',
+    lat: 30.0074,
+    lng: 31.4913,
   },
   customer: {
     name: 'مريم حسن',
     phone: '01098765432',
     address: 'كمبوند النخيل، عمارة 12، الدور 4، شقة 402',
-    landmark: 'بجوار صيدلية العزبي'
+    landmark: 'بجوار صيدلية العزبي',
+    lat: 30.0218,
+    lng: 31.4682,
   },
   vendorsCount: 3,
   itemsCount: 12,
-  bagsCount: 6,
-  cashToCollect: 290,
-  deliveryFee: 45,
-  distanceKm: 7.4,
-  etaMinutes: 18
+  expectedEarnings: 25,
+  totalDistance: 7.4,
+  pickupHubName: 'هب التجمع - شارع التسعين',
+  dropoffArea: 'كمبوند النخيل - التجمع',
+  finalCashTotal: 290,
+  etaMinutes: 18,
+  subOrders: [
+    {
+      shopId: 'SHOP-01',
+      shopName: 'سوق الفواكه - التجمع',
+      itemsCount: 5,
+      shopSubtotal: 85,
+      items: [
+        { id: 'ITM-01-1', name: 'طماطم بلدي', quantity: 2, price: 15 },
+        { id: 'ITM-01-2', name: 'خيار', quantity: 1, price: 12 },
+        { id: 'ITM-01-3', name: 'موز', quantity: 1, price: 18 },
+        { id: 'ITM-01-4', name: 'تفاح أحمر', quantity: 1, price: 25 },
+      ],
+      location: { lat: 30.0089, lng: 31.4881 },
+      status: 'PENDING',
+    },
+    {
+      shopId: 'SHOP-02',
+      shopName: 'مخبز الربيع',
+      itemsCount: 4,
+      shopSubtotal: 95,
+      items: [
+        { id: 'ITM-02-1', name: 'عيش بلدي', quantity: 2, price: 5 },
+        { id: 'ITM-02-2', name: 'فينو', quantity: 1, price: 25 },
+        { id: 'ITM-02-3', name: 'كرواسون زبدة', quantity: 1, price: 60 },
+      ],
+      location: { lat: 30.0112, lng: 31.4855 },
+      status: 'PENDING',
+    },
+    {
+      shopId: 'SHOP-03',
+      shopName: 'بقالة النور',
+      itemsCount: 3,
+      shopSubtotal: 110,
+      items: [
+        { id: 'ITM-03-1', name: 'مسحوق غسيل', quantity: 1, price: 55 },
+        { id: 'ITM-03-2', name: 'مياه معدنية 1.5 لتر', quantity: 1, price: 15 },
+        { id: 'ITM-03-3', name: 'أرز بسمتي', quantity: 1, price: 40 },
+      ],
+      location: { lat: 30.0056, lng: 31.4938 },
+      status: 'PENDING',
+    },
+  ],
 };
 
-export const completedDriverOrders: CompletedDriverOrder[] = [
-  {
-    id: 'CMB-89190',
-    date: '01 يوليو 2026، 06:10 م',
-    occurredAt: '2026-07-01T18:10:00',
-    status: 'COMPLETED',
-    profit: 42
-  },
-  {
-    id: 'CMB-89142',
-    date: '01 يوليو 2026، 03:35 م',
-    occurredAt: '2026-07-01T15:35:00',
-    status: 'COMPLETED',
-    profit: 38
-  },
-  {
-    id: 'CMB-89110',
-    date: '01 يوليو 2026، 11:20 ص',
-    occurredAt: '2026-07-01T11:20:00',
-    status: 'CANCELLED',
-    profit: 0
-  },
-  {
-    id: 'CMB-89088',
-    date: '30 يونيو 2026، 09:15 م',
-    occurredAt: '2026-06-30T21:15:00',
-    status: 'COMPLETED',
-    profit: 55
-  },
-  {
-    id: 'CMB-89021',
-    date: '30 يونيو 2026، 01:25 م',
-    occurredAt: '2026-06-30T13:25:00',
-    status: 'COMPLETED',
-    profit: 35
-  },
-  {
-    id: 'CMB-88970',
-    date: '30 يونيو 2026، 10:05 ص',
-    occurredAt: '2026-06-30T10:05:00',
-    status: 'CANCELLED',
-    profit: 0
-  },
-  {
-    id: 'CMB-88840',
-    date: '28 يونيو 2026، 07:45 م',
-    occurredAt: '2026-06-28T19:45:00',
-    status: 'COMPLETED',
-    profit: 48
-  },
-  {
-    id: 'CMB-88710',
-    date: '27 يونيو 2026، 02:10 م',
-    occurredAt: '2026-06-27T14:10:00',
-    status: 'COMPLETED',
-    profit: 40
-  },
-  {
-    id: 'CMB-88605',
-    date: '25 يونيو 2026، 05:30 م',
-    occurredAt: '2026-06-25T17:30:00',
-    status: 'CANCELLED',
-    profit: 0
-  },
-  {
-    id: 'CMB-88420',
-    date: '20 يونيو 2026، 08:55 م',
-    occurredAt: '2026-06-20T20:55:00',
-    status: 'COMPLETED',
-    profit: 52
-  },
-  {
-    id: 'CMB-88115',
-    date: '12 يونيو 2026، 04:40 م',
-    occurredAt: '2026-06-12T16:40:00',
-    status: 'COMPLETED',
-    profit: 36
-  },
-  {
-    id: 'CMB-87990',
-    date: '05 يونيو 2026، 01:15 م',
-    occurredAt: '2026-06-05T13:15:00',
-    status: 'COMPLETED',
-    profit: 44
-  },
-  {
-    id: 'CMB-87810',
-    date: '28 مايو 2026، 09:30 م',
-    occurredAt: '2026-05-28T21:30:00',
-    status: 'COMPLETED',
-    profit: 33
-  }
+const historySeed: Array<{
+  id: string;
+  daysAgo: number;
+  hours: number;
+  minutes: number;
+  status: CompletedDriverOrder['status'];
+  profit: number;
+}> = [
+  { id: 'CMB-89190', daysAgo: 0, hours: 18, minutes: 10, status: 'COMPLETED', profit: 42 },
+  { id: 'CMB-89142', daysAgo: 0, hours: 15, minutes: 35, status: 'COMPLETED', profit: 38 },
+  { id: 'CMB-89110', daysAgo: 0, hours: 11, minutes: 20, status: 'CANCELLED', profit: 0 },
+  { id: 'CMB-89088', daysAgo: 1, hours: 21, minutes: 15, status: 'COMPLETED', profit: 55 },
+  { id: 'CMB-89021', daysAgo: 1, hours: 13, minutes: 25, status: 'COMPLETED', profit: 35 },
+  { id: 'CMB-88970', daysAgo: 1, hours: 10, minutes: 5, status: 'CANCELLED', profit: 0 },
+  { id: 'CMB-88840', daysAgo: 3, hours: 19, minutes: 45, status: 'COMPLETED', profit: 48 },
+  { id: 'CMB-88710', daysAgo: 4, hours: 14, minutes: 10, status: 'COMPLETED', profit: 40 },
+  { id: 'CMB-88605', daysAgo: 6, hours: 17, minutes: 30, status: 'CANCELLED', profit: 0 },
+  { id: 'CMB-88420', daysAgo: 11, hours: 20, minutes: 55, status: 'COMPLETED', profit: 52 },
+  { id: 'CMB-88115', daysAgo: 19, hours: 16, minutes: 40, status: 'COMPLETED', profit: 36 },
+  { id: 'CMB-87990', daysAgo: 26, hours: 13, minutes: 15, status: 'COMPLETED', profit: 44 },
+  { id: 'CMB-87810', daysAgo: 34, hours: 21, minutes: 30, status: 'COMPLETED', profit: 33 },
 ];
 
-export const mockShiftSessions: ShiftSession[] = [
-  {
-    id: 'SHIFT-0701-AM',
-    date: '01 يوليو 2026',
-    startTime: '2026-07-01T08:00:00',
-    endTime: '2026-07-01T12:15:00',
-    durationMinutes: 255
-  },
-  {
-    id: 'SHIFT-0630-PM',
-    date: '30 يونيو 2026',
-    startTime: '2026-06-30T14:30:00',
-    endTime: '2026-06-30T22:00:00',
-    durationMinutes: 450
-  },
-  {
-    id: 'SHIFT-0630-AM',
-    date: '30 يونيو 2026',
-    startTime: '2026-06-30T07:45:00',
-    endTime: '2026-06-30T11:30:00',
-    durationMinutes: 225
-  },
-  {
-    id: 'SHIFT-0628',
-    date: '28 يونيو 2026',
-    startTime: '2026-06-28T10:00:00',
-    endTime: '2026-06-28T18:20:00',
-    durationMinutes: 500
-  },
-  {
-    id: 'SHIFT-0625',
-    date: '25 يونيو 2026',
-    startTime: '2026-06-25T09:15:00',
-    endTime: '2026-06-25T15:45:00',
-    durationMinutes: 390
-  },
-  {
-    id: 'SHIFT-0612',
-    date: '12 يونيو 2026',
-    startTime: '2026-06-12T11:00:00',
-    endTime: '2026-06-12T19:30:00',
-    durationMinutes: 510
-  },
-  {
-    id: 'SHIFT-0528',
-    date: '28 مايو 2026',
-    startTime: '2026-05-28T08:30:00',
-    endTime: '2026-05-28T14:00:00',
-    durationMinutes: 330
-  }
+export const completedDriverOrders: CompletedDriverOrder[] = historySeed.map((entry) => {
+  const occurredAt = relativeIso(entry.daysAgo, entry.hours, entry.minutes);
+  return {
+    id: entry.id,
+    date: formatArabicDateTime(occurredAt),
+    occurredAt,
+    status: entry.status,
+    profit: entry.profit,
+  };
+});
+
+const shiftSeed: Array<{
+  id: string;
+  daysAgo: number;
+  startH: number;
+  startM: number;
+  endH: number;
+  endM: number;
+  durationMinutes: number;
+}> = [
+  { id: 'SHIFT-TODAY-AM', daysAgo: 0, startH: 8, startM: 0, endH: 12, endM: 15, durationMinutes: 255 },
+  { id: 'SHIFT-YDAY-PM', daysAgo: 1, startH: 14, startM: 30, endH: 22, endM: 0, durationMinutes: 450 },
+  { id: 'SHIFT-YDAY-AM', daysAgo: 1, startH: 7, startM: 45, endH: 11, endM: 30, durationMinutes: 225 },
+  { id: 'SHIFT-D3', daysAgo: 3, startH: 10, startM: 0, endH: 18, endM: 20, durationMinutes: 500 },
+  { id: 'SHIFT-D6', daysAgo: 6, startH: 9, startM: 15, endH: 15, endM: 45, durationMinutes: 390 },
+  { id: 'SHIFT-D19', daysAgo: 19, startH: 11, startM: 0, endH: 19, endM: 30, durationMinutes: 510 },
+  { id: 'SHIFT-D34', daysAgo: 34, startH: 8, startM: 30, endH: 14, endM: 0, durationMinutes: 330 },
 ];
 
-/** Daily settlement snapshot — earnings (245) + bonus (50) − advances (80) = net 215 */
-export const driverWalletState: DriverWalletState = {
-  unremittedCash: 1240,
-  earnings: 245,
-  bonus: 50,
-  advances: 80
-};
+export const mockShiftSessions: ShiftSession[] = shiftSeed.map((entry) => {
+  const startTime = relativeIso(entry.daysAgo, entry.startH, entry.startM);
+  const endTime = relativeIso(entry.daysAgo, entry.endH, entry.endM);
+  return {
+    id: entry.id,
+    date: formatArabicDate(startTime),
+    startTime,
+    endTime,
+    durationMinutes: entry.durationMinutes,
+  };
+});
 
-/** @deprecated Use driverWalletState */
-export const walletSummary = {
-  cashOnHand: driverWalletState.unremittedCash,
-  earnings: driverWalletState.earnings
-};
-
-export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
-  ORDER_DELIVERY: 'أرباح توصيل',
-  CASH_COLLECTION: 'تحصيل نقدي',
-  ADVANCE: 'سلفة',
-  BONUS: 'بونص',
-  SETTLEMENT: 'تصفية / قبض'
-};
-
-export const driverTransactions: Transaction[] = [
-  {
-    id: 'TXN-24062-CASH',
-    type: 'CASH_COLLECTION',
-    amount: 290,
-    description: 'تحصيل نقدي من العميل',
-    orderId: 'CMB-24062',
-    occurredAt: '2026-07-01T14:20:00'
-  },
-  {
-    id: 'TXN-24062-DEL',
-    type: 'ORDER_DELIVERY',
-    amount: 45,
-    description: 'أرباح توصيل — طلب CMB-24062',
-    orderId: 'CMB-24062',
-    occurredAt: '2026-07-01T14:22:00'
-  },
+/**
+ * Seed ledger — CMB-24062 (active order) is intentionally omitted.
+ * Derived balances:
+ *   unremittedCash = Σ CASH_COLLECTION − Σ SETTLEMENT(CASH) = 950
+ *   earnings       = Σ ORDER_DELIVERY − Σ SETTLEMENT(EARNINGS) = 200
+ *   bonus          = Σ BONUS − Σ SETTLEMENT(BONUS) = 50
+ *   advances       = Σ ADVANCE − Σ SETTLEMENT(ADVANCE) = 80
+ */
+export const driverTransactions: LedgerTransaction[] = [
   {
     id: 'TXN-89190-CASH',
     type: 'CASH_COLLECTION',
     amount: 380,
     description: 'تحصيل نقدي من العميل',
     orderId: 'CMB-89190',
-    occurredAt: '2026-07-01T18:10:00'
+    occurredAt: relativeIso(0, 18, 10),
   },
   {
     id: 'TXN-89190-DEL',
@@ -335,7 +211,7 @@ export const driverTransactions: Transaction[] = [
     amount: 42,
     description: 'أرباح توصيل — طلب CMB-89190',
     orderId: 'CMB-89190',
-    occurredAt: '2026-07-01T18:12:00'
+    occurredAt: relativeIso(0, 18, 12),
   },
   {
     id: 'TXN-89142-CASH',
@@ -343,7 +219,7 @@ export const driverTransactions: Transaction[] = [
     amount: 315,
     description: 'تحصيل نقدي من العميل',
     orderId: 'CMB-89142',
-    occurredAt: '2026-07-01T15:35:00'
+    occurredAt: relativeIso(0, 15, 35),
   },
   {
     id: 'TXN-89142-DEL',
@@ -351,21 +227,21 @@ export const driverTransactions: Transaction[] = [
     amount: 38,
     description: 'أرباح توصيل — طلب CMB-89142',
     orderId: 'CMB-89142',
-    occurredAt: '2026-07-01T15:37:00'
+    occurredAt: relativeIso(0, 15, 37),
   },
   {
-    id: 'TXN-BONUS-0701',
+    id: 'TXN-BONUS-TODAY',
     type: 'BONUS',
     amount: 50,
     description: 'بونص أداء — 6 توصيلات قبل الظهر',
-    occurredAt: '2026-07-01T12:00:00'
+    occurredAt: relativeIso(0, 12, 0),
   },
   {
     id: 'TXN-MORNING-CASH',
     type: 'CASH_COLLECTION',
     amount: 255,
     description: 'تحصيل نقدي — توصيلات الصباح',
-    occurredAt: '2026-07-01T08:45:00'
+    occurredAt: relativeIso(0, 8, 45),
   },
   {
     id: 'TXN-89100-DEL',
@@ -373,7 +249,7 @@ export const driverTransactions: Transaction[] = [
     amount: 60,
     description: 'أرباح توصيل — طلب CMB-89100',
     orderId: 'CMB-89100',
-    occurredAt: '2026-07-01T10:15:00'
+    occurredAt: relativeIso(0, 10, 15),
   },
   {
     id: 'TXN-89050-DEL',
@@ -381,14 +257,14 @@ export const driverTransactions: Transaction[] = [
     amount: 60,
     description: 'أرباح توصيل — طلب CMB-89050',
     orderId: 'CMB-89050',
-    occurredAt: '2026-07-01T11:05:00'
+    occurredAt: relativeIso(0, 11, 5),
   },
   {
-    id: 'TXN-ADV-0701',
+    id: 'TXN-ADV-TODAY',
     type: 'ADVANCE',
     amount: 80,
     description: 'سلفة صيانة دراجة',
-    occurredAt: '2026-07-01T09:30:00'
+    occurredAt: relativeIso(0, 9, 30),
   },
   {
     id: 'TXN-89088-CASH',
@@ -396,7 +272,7 @@ export const driverTransactions: Transaction[] = [
     amount: 520,
     description: 'تحصيل نقدي من العميل',
     orderId: 'CMB-89088',
-    occurredAt: '2026-06-30T21:15:00'
+    occurredAt: relativeIso(1, 21, 15),
   },
   {
     id: 'TXN-89088-DEL',
@@ -404,7 +280,7 @@ export const driverTransactions: Transaction[] = [
     amount: 55,
     description: 'أرباح توصيل — طلب CMB-89088',
     orderId: 'CMB-89088',
-    occurredAt: '2026-06-30T21:17:00'
+    occurredAt: relativeIso(1, 21, 17),
   },
   {
     id: 'TXN-89021-CASH',
@@ -412,7 +288,7 @@ export const driverTransactions: Transaction[] = [
     amount: 255,
     description: 'تحصيل نقدي من العميل',
     orderId: 'CMB-89021',
-    occurredAt: '2026-06-30T13:25:00'
+    occurredAt: relativeIso(1, 13, 25),
   },
   {
     id: 'TXN-89021-DEL',
@@ -420,35 +296,53 @@ export const driverTransactions: Transaction[] = [
     amount: 35,
     description: 'أرباح توصيل — طلب CMB-89021',
     orderId: 'CMB-89021',
-    occurredAt: '2026-06-30T13:27:00'
+    occurredAt: relativeIso(1, 13, 27),
   },
   {
-    id: 'TXN-SETTLE-0630',
+    id: 'TXN-SETTLE-PAYOUT-YDAY',
     type: 'SETTLEMENT',
-    amount: 148,
-    description: 'قبض مستحقات يوم 30 يونيو',
-    occurredAt: '2026-06-30T22:45:00'
+    amount: 90,
+    description: 'قبض مستحقات الأمس',
+    occurredAt: relativeIso(1, 22, 45),
+    settles: 'EARNINGS',
   },
   {
-    id: 'TXN-REMIT-0630',
+    id: 'TXN-REMIT-YDAY',
     type: 'SETTLEMENT',
-    amount: 920,
+    amount: 775,
     description: 'توريد عهدة نقدية للهب',
-    occurredAt: '2026-06-30T22:30:00'
+    occurredAt: relativeIso(1, 22, 30),
+    settles: 'CASH',
   },
   {
-    id: 'TXN-ADV-0629',
+    id: 'TXN-ADV-D2',
     type: 'ADVANCE',
     amount: 120,
     description: 'سلفة طوارئ',
-    occurredAt: '2026-06-29T10:15:00'
+    occurredAt: relativeIso(2, 10, 15),
   },
   {
-    id: 'TXN-BONUS-0628',
+    id: 'TXN-SETTLE-ADV-D2',
+    type: 'SETTLEMENT',
+    amount: 120,
+    description: 'تسوية سلفة طوارئ مع المستحقات',
+    occurredAt: relativeIso(1, 22, 46),
+    settles: 'ADVANCE',
+  },
+  {
+    id: 'TXN-BONUS-D3',
     type: 'BONUS',
     amount: 30,
     description: 'بونص التزام بالمواعيد',
-    occurredAt: '2026-06-28T17:00:00'
+    occurredAt: relativeIso(3, 17, 0),
+  },
+  {
+    id: 'TXN-SETTLE-BONUS-D3',
+    type: 'SETTLEMENT',
+    amount: 30,
+    description: 'قبض بونص ضمن تصفية اليوم',
+    occurredAt: relativeIso(1, 22, 47),
+    settles: 'BONUS',
   },
   {
     id: 'TXN-88710-DEL',
@@ -456,7 +350,7 @@ export const driverTransactions: Transaction[] = [
     amount: 40,
     description: 'أرباح توصيل — طلب CMB-88710',
     orderId: 'CMB-88710',
-    occurredAt: '2026-06-28T11:40:00'
+    occurredAt: relativeIso(3, 11, 40),
   },
   {
     id: 'TXN-88710-CASH',
@@ -464,7 +358,7 @@ export const driverTransactions: Transaction[] = [
     amount: 410,
     description: 'تحصيل نقدي من العميل',
     orderId: 'CMB-88710',
-    occurredAt: '2026-06-28T11:38:00'
+    occurredAt: relativeIso(3, 11, 38),
   },
   {
     id: 'TXN-88550-DEL',
@@ -472,7 +366,7 @@ export const driverTransactions: Transaction[] = [
     amount: 48,
     description: 'أرباح توصيل — طلب CMB-88550',
     orderId: 'CMB-88550',
-    occurredAt: '2026-06-15T16:20:00'
+    occurredAt: relativeIso(15, 16, 20),
   },
   {
     id: 'TXN-88550-CASH',
@@ -480,6 +374,36 @@ export const driverTransactions: Transaction[] = [
     amount: 275,
     description: 'تحصيل نقدي من العميل',
     orderId: 'CMB-88550',
-    occurredAt: '2026-06-15T16:18:00'
-  }
+    occurredAt: relativeIso(15, 16, 18),
+  },
+  {
+    id: 'TXN-SETTLE-EARN-OLD',
+    type: 'SETTLEMENT',
+    amount: 88,
+    description: 'قبض مستحقات سابقة',
+    occurredAt: relativeIso(4, 20, 0),
+    settles: 'EARNINGS',
+  },
+  {
+    id: 'TXN-REMIT-OLD',
+    type: 'SETTLEMENT',
+    amount: 685,
+    description: 'توريد عهدة نقدية للهب',
+    occurredAt: relativeIso(4, 19, 45),
+    settles: 'CASH',
+  },
 ];
+
+/**
+ * Expected derived wallet snapshot from driverTransactions (for docs / tests).
+ * unremittedCash: (380+315+255+520+255+410+275) − (775+685) = 2410 − 1460 = 950
+ * earnings: (42+38+60+60+55+35+40+48) − (90+88) = 378 − 178 = 200
+ * bonus: 50 + 30 − 30 = 50
+ * advances: 80 + 120 − 120 = 80
+ */
+export const driverWalletState = {
+  unremittedCash: 950,
+  earnings: 200,
+  bonus: 50,
+  advances: 80,
+} as const;

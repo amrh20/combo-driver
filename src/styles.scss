@@ -18,11 +18,13 @@ body {
 body {
   margin: 0;
   font-family: 'Alexandria', sans-serif;
-  font-weight: 300;
+  font-weight: 400;
   background-color: var(--Combo-bg-background-body);
   color: var(--Combo-text-text-default);
   transition: background-color 0.3s ease;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,

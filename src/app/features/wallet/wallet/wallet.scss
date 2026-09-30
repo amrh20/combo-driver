@@ -45,6 +45,8 @@
   &__value {
     color: var(--Combo-text-text-display);
     line-height: 1.1;
+    font-family: 'IBM Plex Sans', 'Alexandria', system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
   }
 
   &__hint {
