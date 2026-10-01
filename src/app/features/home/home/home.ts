@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 
 import { DELIVERY_ISSUE_OPTIONS } from '../../../core/mocks/driver.mock';
 import { DeliveryIssueType } from '../../../core/models';
+import { AuthService } from '../../../core/services/auth';
 import { TripService } from '../../../core/services/trip.service';
 import { ComboBottomSheet, ComboButton } from '../../../shared/components';
 import { formatMoney, formatNumber } from '../../../shared/utils/format';
@@ -14,6 +15,7 @@ import { openExternalNavigation } from '../../../shared/utils/navigation';
   styleUrl: './home.scss',
 })
 export class Home {
+  private readonly auth = inject(AuthService);
   private readonly trip = inject(TripService);
 
   readonly order = this.trip.order;
@@ -23,7 +25,27 @@ export class Home {
   readonly allShopsPickedUp = this.trip.allShopsPickedUp;
   readonly pickedUpShopCount = this.trip.pickedUpShopCount;
   readonly reportedIssue = this.trip.reportedIssue;
+  readonly currentUserRole = this.auth.currentUserRole;
   readonly issueOptions = DELIVERY_ISSUE_OPTIONS;
+  readonly canCollectFromStores = computed(() => this.currentUserRole() !== 'DELIVERY');
+  readonly canDeliverToCustomer = computed(() => this.currentUserRole() !== 'COLLECTOR');
+  /** Delivery riders receive one bag from the hub, so store count is hidden. */
+  readonly showOfferStores = computed(() => this.currentUserRole() !== 'DELIVERY');
+  /** Collectors stay at the hub and do not see customer-facing offer data. */
+  readonly showOfferDistance = computed(() => this.currentUserRole() !== 'COLLECTOR');
+  readonly showOfferDropoff = computed(() => this.currentUserRole() !== 'COLLECTOR');
+  readonly showOfferCash = computed(() => this.currentUserRole() !== 'COLLECTOR');
+  readonly offerEarningsLabel = computed(() =>
+    this.currentUserRole() === 'COLLECTOR' ? 'مكافأة التجميع' : 'أرباح التوصيل'
+  );
+  readonly showOfferMeta = computed(
+    () => this.showOfferStores() || this.showOfferDistance() || this.showOfferCash()
+  );
+  readonly storeCollectionActionLabel = computed(() =>
+    this.currentUserRole() === 'COLLECTOR'
+      ? 'تسليم الطلب في نقطة التجميع'
+      : 'بدء التوصيل للعميل'
+  );
 
   readonly issueSheetOpen = signal(false);
   readonly selectedIssue = signal<DeliveryIssueType | null>(null);
@@ -63,6 +85,8 @@ export class Home {
     switch (this.tripState()) {
       case 'HEADING_TO_HUB':
         return 'استلام من المتاجر';
+      case 'HUB_PICKUP':
+        return 'استلام من نقطة التجميع';
       case 'HEADING_TO_CUSTOMER':
         return 'في الطريق إلى العميل';
       case 'COLLECTION':
@@ -90,8 +114,17 @@ export class Home {
     this.trip.markShopPickedUp(shopId);
   }
 
-  markPickedUp(): void {
+  completeStoreCollection(): void {
+    if (this.currentUserRole() === 'COLLECTOR') {
+      this.trip.completeCollectorHandover();
+      return;
+    }
+
     this.trip.markPickedUp();
+  }
+
+  confirmHubPickup(): void {
+    this.trip.confirmHubPickup();
   }
 
   markArrived(): void {

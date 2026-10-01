@@ -6,31 +6,33 @@
     </h2>
   </div>
 
-  <article class="wallet-card driver-card combo-p-24">
-    <div class="wallet-card__header d-flex align-items-start justify-content-between gap-3 combo-mb-12">
-      <div>
-        <span class="wallet-card__tag combo-fs-11 font-bold">العهدة</span>
-        <h3 class="wallet-card__heading font-kufam combo-fs-18 font-bold combo-m-0">العهدة الحالية</h3>
+  @if (showCashRemittance()) {
+    <article class="wallet-card driver-card combo-p-24">
+      <div class="wallet-card__header d-flex align-items-start justify-content-between gap-3 combo-mb-12">
+        <div>
+          <span class="wallet-card__tag combo-fs-11 font-bold">العهدة</span>
+          <h3 class="wallet-card__heading font-kufam combo-fs-18 font-bold combo-m-0">العهدة الحالية</h3>
+        </div>
+        <span class="wallet-card__badge combo-fs-11 font-bold">Company Cash</span>
       </div>
-      <span class="wallet-card__badge combo-fs-11 font-bold">Company Cash</span>
-    </div>
 
-    <strong class="wallet-card__value font-numerals combo-fs-36 font-bold combo-mb-8">
-      {{ formatMoney(unremittedCash()) }}
-    </strong>
-    <p class="wallet-card__hint combo-fs-13 combo-mb-20">
-      إجمالي النقد المحصل من العملاء ولم يُورَّد للهب بعد.
-    </p>
+      <strong class="wallet-card__value font-numerals combo-fs-36 font-bold combo-mb-8">
+        {{ formatMoney(unremittedCash()) }}
+      </strong>
+      <p class="wallet-card__hint combo-fs-13 combo-mb-20">
+        إجمالي النقد المحصل من العملاء ولم يُورَّد للهب بعد.
+      </p>
 
-    <combo-button
-      size="lg"
-      [fullWidth]="true"
-      [disabled]="unremittedCash() <= 0"
-      (clicked)="openRemitConfirm()"
-    >
-      تم توريد الكاش
-    </combo-button>
-  </article>
+      <combo-button
+        size="lg"
+        [fullWidth]="true"
+        [disabled]="unremittedCash() <= 0"
+        (clicked)="openRemitConfirm()"
+      >
+        تم توريد الكاش
+      </combo-button>
+    </article>
+  }
 
   <article class="wallet-card driver-card combo-p-24">
     <div class="wallet-card__header d-flex align-items-start justify-content-between gap-3 combo-mb-12">
@@ -43,7 +45,7 @@
 
     <ul class="wallet-card__breakdown combo-mb-16">
       <li class="wallet-card__row">
-        <span class="combo-fs-14">أرباح التوصيل</span>
+        <span class="combo-fs-14">{{ earningsLabel() }}</span>
         <strong class="font-numerals combo-fs-14 font-semibold">{{ formatMoney(earnings()) }}</strong>
       </li>
       <li class="wallet-card__row">

@@ -1,9 +1,8 @@
 <main class="auth-page driver-page d-flex align-items-center">
   <section class="auth-page__card driver-card combo-p-24">
     <div class="auth-page__brand combo-mb-32">
-      <span class="auth-page__badge combo-fs-12 font-bold combo-br-pill">Driver App</span>
       <h1 class="auth-page__title font-kufam combo-fs-28 font-bold combo-mt-16 combo-mb-8">
-        تسجيل دخول السائق
+        تسجيل دخول الكابتن
       </h1>
       <p class="auth-page__subtitle combo-fs-14 combo-m-0">
         دخول آمن برقم الهاتف وكلمة المرور فقط.
@@ -20,6 +19,27 @@
         <label for="password">كلمة المرور</label>
         <input id="password" type="password" autocomplete="current-password" formControlName="password" placeholder="••••••••" />
       </div>
+
+      <fieldset class="auth-page__roles d-flex flex-column gap-2">
+        <legend class="combo-fs-14 font-semibold combo-mb-4">نوع المهمة التجريبية</legend>
+        @for (option of roleOptions; track option.value) {
+          <label
+            class="auth-page__role-option d-flex align-items-center gap-3 combo-p-12"
+            [class.auth-page__role-option--selected]="form.controls.role.value === option.value"
+          >
+            <input
+              type="radio"
+              formControlName="role"
+              [value]="option.value"
+              [attr.aria-label]="option.label + ' (' + option.hint + ')'"
+            />
+            <span class="d-flex flex-column gap-1">
+              <span class="combo-fs-14 font-semibold">{{ option.label }}</span>
+              <span class="auth-page__role-hint combo-fs-12">{{ option.hint }}</span>
+            </span>
+          </label>
+        }
+      </fieldset>
 
       @if (errorMessage()) {
         <p class="auth-page__error combo-fs-13 combo-m-0">{{ errorMessage() }}</p>

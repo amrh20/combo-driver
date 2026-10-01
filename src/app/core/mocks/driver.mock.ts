@@ -43,7 +43,7 @@ export const DELIVERY_ISSUE_OPTIONS: DeliveryIssueOption[] = [
 
 export const driverProfile: DriverProfile = {
   id: 'DRV-1024',
-  name: 'أحمد السائق',
+  name: 'أحمد',
   phone: '01000000000',
   vehicle: 'موتوسيكل - أ ب ج 456',
   rating: 4.9,

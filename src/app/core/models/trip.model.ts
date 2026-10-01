@@ -1,6 +1,7 @@
 export type TripState =
   | 'IDLE'
   | 'HEADING_TO_HUB'
+  | 'HUB_PICKUP'
   | 'HEADING_TO_CUSTOMER'
   | 'COLLECTION'
   | 'ISSUE_REPORTED';

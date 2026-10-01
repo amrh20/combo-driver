@@ -26,60 +26,99 @@
       </section>
 
       @if (isOnline() && hasIncomingOrder()) {
-        <section class="incoming-order driver-card combo-p-24">
-          <p class="incoming-order__tag combo-fs-12 font-bold combo-mb-12">طلب وارد جديد</p>
-          <h3 class="incoming-order__title font-kufam combo-fs-22 font-bold combo-mb-16">
-            {{ order().id }}
-          </h3>
+        <div class="incoming-offers" aria-label="عروض الطلبات الواردة">
+          <section class="incoming-order driver-card combo-p-16 d-flex flex-column gap-2">
+            <div class="incoming-order__body d-flex flex-column gap-2">
+              <div class="incoming-order__header d-flex align-items-center justify-content-between gap-2">
+                <h3 class="incoming-order__id font-kufam combo-fs-16 font-bold combo-m-0">
+                  {{ order().id }}
+                </h3>
+                <span
+                  class="incoming-order__profit"
+                  [attr.aria-label]="offerEarningsLabel() + ' ' + formatMoney(order().expectedEarnings)"
+                >
+                  <span class="incoming-order__profit-label combo-fs-11 font-medium">
+                    {{ offerEarningsLabel() }}
+                  </span>
+                  <span class="incoming-order__profit-value font-numerals combo-fs-14 font-bold">
+                    {{ formatMoney(order().expectedEarnings) }}
+                  </span>
+                </span>
+              </div>
 
-          <div class="incoming-order__meta combo-mb-16">
-            <div class="incoming-order__meta-item">
-              <span class="incoming-order__meta-value font-numerals combo-fs-18 font-bold">
-                {{ formatNumber(order().vendorsCount) }}
-              </span>
-              <span class="incoming-order__meta-label combo-fs-12">المتاجر</span>
-            </div>
-            <div class="incoming-order__meta-item">
-              <span class="incoming-order__meta-value font-numerals combo-fs-18 font-bold">
-                {{ formatNumber(order().totalDistance) }}
-              </span>
-              <span class="incoming-order__meta-label combo-fs-12">المسافة · كم</span>
-            </div>
-            <div class="incoming-order__meta-item incoming-order__meta-item--earnings">
-              <span class="incoming-order__meta-value incoming-order__meta-value--earnings font-numerals combo-fs-18 font-bold">
-                {{ formatMoney(order().expectedEarnings) }}
-              </span>
-              <span class="incoming-order__meta-label combo-fs-12">أرباح التوصيل</span>
-            </div>
-          </div>
+              <div class="incoming-order__route d-flex align-items-center gap-2">
+                <span class="incoming-order__place">
+                  <span class="incoming-order__kicker combo-fs-11">نقطة التجميع</span>
+                  <span class="incoming-order__place-name combo-fs-13 font-semibold">
+                    {{ order().pickupHubName }}
+                  </span>
+                </span>
+                @if (showOfferDropoff()) {
+                  <svg class="incoming-order__arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M12.5 8H3.5M6.5 5 3.5 8l3 3"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <span class="incoming-order__place">
+                    <span class="incoming-order__kicker combo-fs-11">منطقة التسليم</span>
+                    <span class="incoming-order__place-name combo-fs-13 font-semibold">
+                      {{ order().dropoffArea }}
+                    </span>
+                  </span>
+                }
+              </div>
 
-          <div class="incoming-order__details d-flex flex-column gap-2 combo-mb-24">
-            <div class="incoming-order__detail-row">
-              <span class="combo-fs-13">نقطة التجميع</span>
-              <span class="combo-fs-13 font-semibold">{{ order().pickupHubName }}</span>
+              @if (showOfferMeta()) {
+                <div class="incoming-order__meta d-flex align-items-center flex-wrap gap-2">
+                  @if (showOfferStores()) {
+                    <span class="incoming-order__chip combo-fs-12">
+                      <span class="font-numerals font-bold">{{ formatNumber(order().vendorsCount) }}</span>
+                      متاجر
+                    </span>
+                  }
+                  @if (showOfferDistance()) {
+                    <span class="incoming-order__chip combo-fs-12 font-numerals">
+                      {{ formatNumber(order().totalDistance) }} كم
+                    </span>
+                  }
+                  @if (showOfferCash()) {
+                    <span class="incoming-order__chip incoming-order__chip--cash combo-fs-12">
+                      تحصيل:
+                      <span class="font-numerals font-bold">{{ formatMoney(order().finalCashTotal) }}</span>
+                    </span>
+                  }
+                </div>
+              }
             </div>
-            <div class="incoming-order__detail-row">
-              <span class="combo-fs-13">منطقة التسليم</span>
-              <span class="combo-fs-13 font-semibold">{{ order().dropoffArea }}</span>
-            </div>
-            <div class="incoming-order__detail-row incoming-order__detail-row--cash">
-              <span class="combo-fs-13">الكاش المطلوب تحصيله</span>
-              <span class="incoming-order__cash-value font-numerals combo-fs-14 font-bold">
-                {{ formatMoney(order().finalCashTotal) }}
-              </span>
-            </div>
-          </div>
 
-          <div class="incoming-order__actions d-grid gap-3">
-            <combo-button size="lg" [fullWidth]="true" (clicked)="acceptOrder()">قبول الطلب</combo-button>
-            <combo-button variant="outline" color="danger" size="lg" [fullWidth]="true" (clicked)="rejectOrder()">رفض</combo-button>
-          </div>
-        </section>
+            <div class="incoming-order__actions d-flex flex-row align-items-stretch gap-2">
+              <div class="incoming-order__accept">
+                <combo-button size="md" [fullWidth]="true" (clicked)="acceptOrder()">قبول الطلب</combo-button>
+              </div>
+              <div class="incoming-order__reject">
+                <combo-button
+                  variant="outline"
+                  color="danger"
+                  size="md"
+                  [fullWidth]="true"
+                  (clicked)="rejectOrder()"
+                >
+                  رفض
+                </combo-button>
+              </div>
+            </div>
+          </section>
+        </div>
       }
     }
 
     @case ('HEADING_TO_HUB') {
-      <section class="trip-card driver-card combo-p-24">
+      @if (canCollectFromStores()) {
+        <section class="trip-card driver-card combo-p-24">
         <span class="trip-card__step combo-fs-12 font-bold combo-br-pill">الخطوة 1</span>
         <h3 class="trip-card__title font-kufam combo-fs-24 font-bold combo-mt-16 combo-mb-12">
           استلام الطلبات من المتاجر
@@ -232,19 +271,70 @@
           }
         </ul>
 
-        <combo-button
-          size="lg"
-          [fullWidth]="true"
-          [disabled]="!allShopsPickedUp()"
-          (clicked)="markPickedUp()"
-        >
-          بدء التوصيل للعميل
-        </combo-button>
-      </section>
+          <combo-button
+            size="lg"
+            [fullWidth]="true"
+            [disabled]="!allShopsPickedUp()"
+            (clicked)="completeStoreCollection()"
+          >
+            {{ storeCollectionActionLabel() }}
+          </combo-button>
+        </section>
+      }
+    }
+
+    @case ('HUB_PICKUP') {
+      @if (canDeliverToCustomer()) {
+        <section class="trip-card driver-card combo-p-24">
+          <span class="trip-card__step combo-fs-12 font-bold combo-br-pill">الخطوة 1</span>
+          <h3 class="trip-card__title font-kufam combo-fs-24 font-bold combo-mt-16 combo-mb-12">
+            استلام الطلب من نقطة التجميع
+          </h3>
+
+          <div class="trip-card__address-row d-flex align-items-start gap-3 combo-mb-16">
+            <div class="trip-card__address-copy flex-grow-1">
+              <p class="trip-card__name combo-fs-18 font-bold combo-mb-8">{{ order().hub.name }}</p>
+              <p class="trip-card__text combo-fs-14 combo-m-0">{{ order().hub.address }}</p>
+            </div>
+            <button
+              type="button"
+              class="nav-fab"
+              aria-label="فتح خرائط جوجل لنقطة التجميع"
+              (click)="openNavigation(order().hub.lat, order().hub.lng)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 21s7-5.33 7-11a7 7 0 1 0-14 0c0 5.67 7 11 7 11Z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.6" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="trip-card__info d-flex flex-column gap-2 combo-mb-24">
+            <span>موعد الاستلام: {{ order().hub.pickupWindow }}</span>
+            <span>رقم نقطة التجميع: {{ order().hub.contactPhone }}</span>
+            <span>
+              الطلب:
+              <span class="font-numerals font-bold">{{ formatNumber(order().vendorsCount) }}</span>
+              متاجر ·
+              <span class="font-numerals font-bold">{{ formatNumber(order().itemsCount) }}</span>
+              عنصر
+            </span>
+          </div>
+
+          <combo-button size="lg" [fullWidth]="true" (clicked)="confirmHubPickup()">
+            تأكيد استلام الطلب من نقطة التجميع
+          </combo-button>
+        </section>
+      }
     }
 
     @case ('HEADING_TO_CUSTOMER') {
-      <section class="trip-card driver-card combo-p-24">
+      @if (canDeliverToCustomer()) {
+        <section class="trip-card driver-card combo-p-24">
         <span class="trip-card__step combo-fs-12 font-bold combo-br-pill">الخطوة 2</span>
         <h3 class="trip-card__title font-kufam combo-fs-24 font-bold combo-mt-16 combo-mb-12">
           توجه إلى العميل
@@ -351,11 +441,13 @@
             يوجد مشكلة في التسليم
           </combo-button>
         </div>
-      </section>
+        </section>
+      }
     }
 
     @case ('COLLECTION') {
-      <section class="collection-card combo-p-24">
+      @if (canDeliverToCustomer()) {
+        <section class="collection-card combo-p-24">
         <p class="collection-card__label combo-fs-14 font-bold combo-mb-12">التحصيل النهائي</p>
         <h3 class="collection-card__amount font-kufam font-black combo-mb-12">
           برجاء تحصيل
@@ -380,7 +472,8 @@
             يوجد مشكلة في التسليم
           </combo-button>
         </div>
-      </section>
+        </section>
+      }
     }
 
     @case ('ISSUE_REPORTED') {

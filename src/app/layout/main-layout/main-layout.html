@@ -1,9 +1,9 @@
 <main class="driver-shell driver-page">
   <header class="driver-shell__header d-flex align-items-center justify-content-between gap-3">
     <div>
-      <p class="driver-shell__eyebrow combo-fs-12 combo-mb-4">Combo Driver</p>
+      <p class="driver-shell__eyebrow combo-fs-12 combo-mb-4">Combo Captain</p>
       <h1 class="driver-shell__title font-kufam combo-fs-20 font-bold combo-m-0">
-        أهلاً، {{ driver().name }}
+        أهلاً، الكابتن {{ driver().name }}
       </h1>
     </div>
 
@@ -16,7 +16,7 @@
     <router-outlet />
   </section>
 
-  <nav class="driver-shell__nav" aria-label="Driver bottom navigation">
+  <nav class="driver-shell__nav" aria-label="Captain bottom navigation">
     @for (item of navItems; track item.link) {
       <a
         class="driver-shell__nav-item"

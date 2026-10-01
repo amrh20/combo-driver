@@ -55,83 +55,130 @@
   }
 }
 
+.incoming-offers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-bottom: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--Combo-border-border-neutral-primary) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--Combo-border-border-neutral-primary);
+  }
+}
+
 .incoming-order {
-  &__tag {
-    color: var(--Combo-text-text-primary);
-  }
+  border-radius: 16px;
 
-  &__title {
-    color: var(--Combo-text-text-display);
-  }
-
-  &__meta {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-
-  &__meta-item {
-    min-height: 72px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 8px 6px;
-    border-radius: 16px;
-    background: var(--Combo-bg-background-neutral-100);
-    text-align: center;
-  }
-
-  &__meta-item--earnings {
-    background: var(--Combo-bg-background-primary-50);
-    border: 1px solid var(--Combo-border-border-primary);
-  }
-
-  &__meta-value {
+  &__id {
+    flex-shrink: 0;
     color: var(--Combo-text-text-display);
     line-height: 1.2;
   }
 
-  &__meta-value--earnings {
-    color: var(--Combo-text-text-primary);
-  }
-
-  &__meta-label {
-    color: var(--Combo-text-text-secondary-paragraph);
-    line-height: 1.25;
-  }
-
-  &__details {
-    padding: 12px 14px;
-    border-radius: 16px;
-    background: var(--Combo-bg-background-neutral-50);
-  }
-
-  &__detail-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    color: var(--Combo-text-text-secondary-paragraph);
-
-    .font-semibold {
-      color: var(--Combo-text-text-display);
-      text-align: end;
-      max-width: 62%;
-      line-height: 1.4;
-    }
-  }
-
-  &__detail-row--cash {
-    padding-top: 8px;
-    margin-top: 4px;
-    border-top: 1px solid var(--Combo-border-border-neutral-primary);
+  &__profit {
+    display: inline-flex;
     align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 68%;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--Combo-bg-background-primary-50);
+    border: 1px solid var(--Combo-border-border-primary);
+    color: var(--Combo-text-text-primary);
   }
 
-  &__cash-value {
+  &__profit-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  &__profit-value {
+    flex-shrink: 0;
+    line-height: 1.2;
+  }
+
+  &__route {
+    min-width: 0;
+  }
+
+  &__place {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  &__kicker {
+    flex-shrink: 0;
+    color: var(--Combo-text-text-secondary-paragraph);
+    line-height: 1.2;
+  }
+
+  &__place-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--Combo-text-text-display);
+    line-height: 1.3;
+  }
+
+  &__arrow {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--Combo-text-text-secondary-paragraph);
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--Combo-bg-background-neutral-100);
+    color: var(--Combo-text-text-secondary-paragraph);
+    line-height: 1.4;
+  }
+
+  &__chip--cash {
     color: var(--Combo-text-text-primary);
+    background: var(--Combo-bg-background-primary-25);
+  }
+
+  &__accept {
+    flex: 2 1 0;
+    min-width: 0;
+  }
+
+  &__reject {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  &__accept,
+  &__reject {
+    combo-button {
+      display: block;
+      width: 100%;
+    }
   }
 }
 

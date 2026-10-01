@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 
+import { AuthService } from '../../../core/services/auth';
 import { DriverWalletService } from '../../../core/services/driver-wallet.service';
 import { ComboButton } from '../../../shared/components';
 import { formatMoney } from '../../../shared/utils/format';
@@ -14,6 +15,15 @@ type ConfirmAction = 'remit' | 'payout' | null;
 })
 export class Wallet {
   private readonly walletService = inject(DriverWalletService);
+  private readonly auth = inject(AuthService);
+
+  readonly currentUserRole = this.auth.currentUserRole;
+  readonly showCashRemittance = computed(
+    () => this.currentUserRole() === 'DELIVERY' || this.currentUserRole() === 'BOTH'
+  );
+  readonly earningsLabel = computed(() =>
+    this.currentUserRole() === 'COLLECTOR' ? 'مكافأة التجميع' : 'أرباح التوصيل'
+  );
 
   readonly unremittedCash = this.walletService.unremittedCash;
   readonly earnings = this.walletService.earnings;

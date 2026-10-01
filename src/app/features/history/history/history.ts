@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 
+import { AuthService } from '../../../core/services/auth';
 import { HistoryService } from '../../../core/services/history.service';
 import {
   CompletedDriverOrder,
@@ -16,6 +17,12 @@ import { formatMoney } from '../../../shared/utils/format';
 })
 export class History {
   private readonly historyService = inject(HistoryService);
+  private readonly auth = inject(AuthService);
+
+  readonly currentUserRole = this.auth.currentUserRole;
+  readonly earningsBadgeLabel = computed(() =>
+    this.currentUserRole() === 'COLLECTOR' ? 'مكافأة التجميع' : 'ربح الكابتن'
+  );
 
   readonly activeTimeFilter = signal<HistoryTimeFilter>('today');
   readonly activeStatusFilter = signal<HistoryOrderStatus>('COMPLETED');

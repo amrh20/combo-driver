@@ -30,4 +30,38 @@
   &__link {
     color: var(--Combo-text-text-primary);
   }
+
+  &__roles {
+    padding: 0;
+    margin: 0;
+    border: 0;
+
+    legend {
+      color: var(--Combo-text-text-default);
+    }
+  }
+
+  &__role-option {
+    border: 1px solid var(--Combo-border-border-neutral-primary);
+    border-radius: 16px;
+    background: var(--Combo-bg-background-white);
+    color: var(--Combo-text-text-display);
+    cursor: pointer;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+
+    input {
+      accent-color: var(--Combo-bg-background-primary);
+    }
+  }
+
+  &__role-option--selected {
+    border-color: var(--Combo-border-border-primary);
+    background: var(--Combo-bg-background-primary-25);
+  }
+
+  &__role-hint {
+    color: var(--Combo-text-text-secondary-paragraph);
+  }
 }
