@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, Routes } from '@angular/router';
 
-import { AuthService } from './core/services/auth';
+import { AuthService, landingPath } from './core/services/auth';
 
 const authGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
@@ -41,6 +41,16 @@ export const routes: Routes = [
           import('./features/home/home/home').then((m) => m.Home)
       },
       {
+        path: 'delivery-tasks',
+        loadComponent: () =>
+          import('./features/home/home/home').then((m) => m.Home)
+      },
+      {
+        path: 'collector-tasks',
+        loadComponent: () =>
+          import('./features/home/home/home').then((m) => m.Home)
+      },
+      {
         path: 'wallet',
         loadComponent: () =>
           import('./features/wallet/wallet/wallet').then((m) => m.Wallet)
@@ -64,7 +74,15 @@ export const routes: Routes = [
             (m) => m.ShiftTracker
           )
       },
-      { path: '', pathMatch: 'full', redirectTo: 'home' }
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: () => landingPath(inject(AuthService).currentUserRole())
+      },
+      {
+        path: '**',
+        redirectTo: () => landingPath(inject(AuthService).currentUserRole())
+      }
     ]
   },
   { path: '**', redirectTo: 'home' }

@@ -1,16 +1,18 @@
 import { Injectable, computed, signal } from '@angular/core';
 
 import { mockShiftSessions } from '../mocks/driver.mock';
-import { ShiftSession } from '../models';
+import { CaptainAvailability, CaptainOpenShift, ShiftSession } from '../models';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DriverStatusService {
   private readonly shiftSessions = signal<ShiftSession[]>([...mockShiftSessions]);
-  private readonly activeSessionStart = signal<string | null>(null);
+  private readonly activeShift = signal<CaptainOpenShift | null>(null);
+  private readonly online = signal(false);
 
-  readonly isOnline = signal(false);
+  readonly isOnline = this.online.asReadonly();
+  readonly openShift = this.activeShift.asReadonly();
 
   readonly sessions = computed(() => {
     const active = this.buildActiveSession();
@@ -23,49 +25,10 @@ export class DriverStatusService {
     return completed;
   });
 
-  toggleOnline(): void {
-    if (this.isOnline()) {
-      this.goOffline();
-      return;
-    }
-
-    this.goOnline();
-  }
-
-  goOnline(): void {
-    if (this.isOnline()) {
-      return;
-    }
-
-    this.isOnline.set(true);
-    this.activeSessionStart.set(new Date().toISOString());
-  }
-
-  goOffline(): void {
-    if (!this.isOnline()) {
-      return;
-    }
-
-    const startTime = this.activeSessionStart();
-
-    if (startTime) {
-      const endTime = new Date();
-      const durationMinutes = this.calculateDurationMinutes(startTime, endTime.toISOString());
-
-      this.shiftSessions.update((sessions) => [
-        {
-          id: `SHIFT-${endTime.getTime()}`,
-          date: this.formatSessionDate(startTime),
-          startTime,
-          endTime: endTime.toISOString(),
-          durationMinutes,
-        },
-        ...sessions,
-      ]);
-    }
-
-    this.activeSessionStart.set(null);
-    this.isOnline.set(false);
+  /** Applies `GET` or `POST /v1/captain/availability` without inventing a local shift. */
+  applyAvailability(state: CaptainAvailability): void {
+    this.online.set(state.online);
+    this.activeShift.set(state.online && state.shift ? state.shift : null);
   }
 
   getSessionDurationMinutes(session: ShiftSession, referenceDate = new Date()): number {
@@ -105,16 +68,16 @@ export class DriverStatusService {
   }
 
   private buildActiveSession(): ShiftSession | null {
-    const startTime = this.activeSessionStart();
+    const shift = this.activeShift();
 
-    if (!startTime || !this.isOnline()) {
+    if (!shift || !this.isOnline()) {
       return null;
     }
 
     return {
-      id: 'SHIFT-ACTIVE',
-      date: this.formatSessionDate(startTime),
-      startTime,
+      id: shift.id,
+      date: this.formatSessionDate(shift.startedAt),
+      startTime: shift.startedAt,
       endTime: null,
       durationMinutes: null,
     };

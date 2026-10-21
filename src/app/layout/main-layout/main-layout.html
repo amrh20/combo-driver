@@ -7,7 +7,14 @@
       </h1>
     </div>
 
-    <combo-button variant="ghost" color="neutral" size="sm" (clicked)="logout()">
+    <combo-button
+      variant="ghost"
+      color="neutral"
+      size="sm"
+      [disabled]="loggingOut()"
+      [loading]="loggingOut()"
+      (clicked)="logout()"
+    >
       خروج
     </combo-button>
   </header>
@@ -17,7 +24,7 @@
   </section>
 
   <nav class="driver-shell__nav" aria-label="Captain bottom navigation">
-    @for (item of navItems; track item.link) {
+    @for (item of navItems(); track item.link) {
       <a
         class="driver-shell__nav-item"
         [routerLink]="item.link"

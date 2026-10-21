@@ -1,68 +1,353 @@
+import { signal, WritableSignal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { Subject, of } from 'rxjs';
+import { vi } from 'vitest';
 
-import { AuthService, DriverRole } from './auth';
+import { API_BASE_URL } from '../config/api';
+import { CAPTAIN_NETWORK_MESSAGE } from '../http/captain-error';
+import { CaptainOffer, CaptainTask, RealtimeMessage, TaskFlags, TaskStop } from '../models';
+import { AuthService } from './auth';
+import { AvailabilityService } from './availability.service';
+import { CaptainLocationService } from './captain-location.service';
+import { RealtimeService } from './realtime.service';
+import { ToastService } from './toast.service';
 import { TripService } from './trip.service';
 
-describe('TripService role-based flow', () => {
-  let auth: AuthService;
+const offersUrl = `${API_BASE_URL}/v1/captain/offers/current`;
+const tasksUrl = `${API_BASE_URL}/v1/captain/tasks/current`;
+
+describe('TripService', () => {
   let trip: TripService;
+  let http: HttpTestingController;
+  let toast: ToastService;
+  let authed: WritableSignal<boolean>;
+  let online: WritableSignal<boolean>;
+  let messages$: Subject<RealtimeMessage>;
+  let connected$: Subject<void>;
+  let startRealtime: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    window.localStorage.clear();
-    TestBed.configureTestingModule({});
-    auth = TestBed.inject(AuthService);
+    authed = signal(false);
+    online = signal(false);
+    messages$ = new Subject();
+    connected$ = new Subject();
+    startRealtime = vi.fn();
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: AuthService,
+          useValue: { isAuthenticated: authed.asReadonly() },
+        },
+        {
+          provide: AvailabilityService,
+          useValue: {
+            isOnline: online.asReadonly(),
+            updating: signal(false),
+            setOnline: vi.fn(() => of({ online: true, shift: null })),
+          },
+        },
+        {
+          provide: RealtimeService,
+          useValue: {
+            start: startRealtime,
+            stop: vi.fn(),
+            messages$,
+            connected$,
+          },
+        },
+        {
+          provide: CaptainLocationService,
+          useValue: { current: () => of({ lat: 30.1, lng: 31.2 }) },
+        },
+      ],
+    });
+
     trip = TestBed.inject(TripService);
+    http = TestBed.inject(HttpTestingController);
+    toast = TestBed.inject(ToastService);
+    TestBed.flushEffects();
   });
 
-  function loginAs(role: DriverRole): void {
-    expect(auth.login('01000000000', 'driver123', role)).toBe(true);
+  afterEach(() => {
+    http.verify();
+  });
+
+  it('loads the current task and offer when the captain is online', () => {
+    goOnline(liveOffer());
+
+    expect(startRealtime).toHaveBeenCalled();
+    expect(trip.offer()?.id).toBe('offer-1');
+    expect(trip.offerCard()?.id).toBe('CMB-1');
+    expect(trip.screen()).toBe('IDLE');
+  });
+
+  it('keeps an offer after expiresAt has passed', () => {
+    const current = liveOffer();
+    current.expiresAt = new Date(Date.now() - 5_000).toISOString();
+    goOnline(current);
+
+    expect(trip.offer()?.id).toBe('offer-1');
+    expect(trip.offerCard()?.id).toBe('CMB-1');
+  });
+
+  it('fetches the current offer when offer.created arrives and refetches after reconnect', () => {
+    goOnline(null);
+    messages$.next({ event: 'offer.created', id: 'evt-1', data: {} });
+
+    http.expectOne(offersUrl).flush(liveOffer());
+    expect(trip.offer()?.id).toBe('offer-1');
+
+    connected$.next();
+    http.expectOne(tasksUrl).flush(null);
+    http.expectOne(offersUrl).flush(null);
+    expect(trip.offer()).toBeNull();
+  });
+
+  it('accepts an offer with an idempotency key and replaces the card with the task', () => {
+    goOnline(liveOffer());
+    trip.acceptOffer();
+    trip.acceptOffer();
+
+    const request = http.expectOne(`${API_BASE_URL}/v1/captain/offers/offer-1/accept`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({});
+    expect(request.request.headers.get('Idempotency-Key')).toMatch(/^[A-Za-z0-9_-]{8,128}$/);
+    request.flush(vendorTask());
+
+    expect(trip.screen()).toBe('VENDOR');
+    expect(trip.offer()).toBeNull();
+    expect(trip.pendingAction()).toBeNull();
+  });
+
+  it('declines an offer with a reason', () => {
+    goOnline(liveOffer());
+    trip.declineOffer('  بعيد عن موقعي  ');
+
+    const request = http.expectOne(`${API_BASE_URL}/v1/captain/offers/offer-1/decline`);
+    expect(request.request.body).toEqual({ reason: 'بعيد عن موقعي' });
+    expect(request.request.headers.get('Idempotency-Key')).toMatch(/^[A-Za-z0-9_-]{8,128}$/);
+    request.flush(null);
+
+    expect(trip.offer()).toBeNull();
+  });
+
+  it('completes only the current stop and sends cash in piastres for a cash delivery', () => {
+    goOnline(null, vendorTask());
+    trip.completeCurrentStop('stop-other');
+    http.expectNone(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-other/complete`);
+
+    trip.completeCurrentStop('stop-vendor');
+    const pickup = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-vendor/complete`);
+    expect(pickup.request.body).toEqual({ location: { lat: 30.1, lng: 31.2 } });
+    expect(pickup.request.headers.get('Idempotency-Key')).toMatch(/^[A-Za-z0-9_-]{8,128}$/);
+    pickup.flush(customerTask());
+
+    expect(trip.screen()).toBe('CUSTOMER');
+    trip.arriveAtCustomer();
+    const arrive = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/arrive`);
+    expect(arrive.request.body).toEqual({ location: { lat: 30.1, lng: 31.2 } });
+    arrive.flush(customerTask('ARRIVED'));
+    expect(trip.screen()).toBe('COLLECTION');
+
+    trip.completeCurrentStop('stop-customer');
+    const deliver = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
+    expect(deliver.request.body).toEqual({
+      location: { lat: 30.1, lng: 31.2 },
+      cashCollected: 25000,
+    });
+    deliver.flush(customerTask('DONE', 'COMPLETED'));
+    expect(trip.screen()).toBe('IDLE');
+    http.expectOne(offersUrl).flush(null);
+  });
+
+  it('shows the backend 409 message and reloads the current task', () => {
+    goOnline(null, vendorTask());
+    trip.completeCurrentStop('stop-vendor');
+
+    http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-vendor/complete`).flush(
+      { error: { code: 'INVALID_STATE', message: 'استنى موظف الهب' } },
+      { status: 409, statusText: 'Conflict' },
+    );
+
+    expect(toast.current()).toBe('استنى موظف الهب');
+    http.expectOne(tasksUrl).flush(vendorTask());
+    expect(trip.screen()).toBe('VENDOR');
+    expect(trip.pendingAction()).toBeNull();
+  });
+
+  it('asks for farReason after 422 OUTSIDE_GEOFENCE and resubmits it', () => {
+    goOnline(null, customerTask('ARRIVED'));
+    expect(trip.screen()).toBe('COLLECTION');
+    trip.completeCurrentStop('stop-customer');
+
+    const first = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
+    const firstKey = first.request.headers.get('Idempotency-Key');
+    first.flush(
+      {
+        error: {
+          code: 'OUTSIDE_GEOFENCE',
+          message: 'You are far from the customer',
+          details: { distanceMeters: 350, maxMeters: 200 },
+        },
+      },
+      { status: 422, statusText: 'Unprocessable Entity' },
+    );
+
+    expect(trip.farPrompt()).toEqual({
+      taskId: 'task-1',
+      stopId: 'stop-customer',
+      distanceMeters: 350,
+      maxMeters: 200,
+    });
+    expect(toast.current()).toBeNull();
+
+    trip.submitFarReason('ا');
+    http.expectNone(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
+
+    trip.submitFarReason('العميل قابلني عند البوابة');
+    const retry = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
+    expect(retry.request.body).toEqual({
+      location: { lat: 30.1, lng: 31.2 },
+      cashCollected: 25000,
+      farReason: 'العميل قابلني عند البوابة',
+    });
+    expect(retry.request.headers.get('Idempotency-Key')).toMatch(/^[A-Za-z0-9_-]{8,128}$/);
+    expect(retry.request.headers.get('Idempotency-Key')).not.toBe(firstKey);
+    retry.flush(customerTask('DONE', 'COMPLETED'));
+    expect(trip.farPrompt()).toBeNull();
+    http.expectOne(offersUrl).flush(null);
+  });
+
+  it('shows the Arabic network message when the server cannot be reached', () => {
+    goOnline(liveOffer());
+    trip.acceptOffer();
+
+    http.expectOne(`${API_BASE_URL}/v1/captain/offers/offer-1/accept`).error(new ProgressEvent('error'));
+    expect(toast.current()).toBe(CAPTAIN_NETWORK_MESSAGE);
+    expect(trip.pendingAction()).toBeNull();
+  });
+
+  function goOnline(offer: CaptainOffer | null, task: CaptainTask | null = null): void {
+    authed.set(true);
+    online.set(true);
+    TestBed.flushEffects();
+    http.expectOne(tasksUrl).flush(task);
+    http.expectOne(offersUrl).flush(offer);
   }
-
-  function collectAllShops(): void {
-    for (const shop of trip.order().subOrders) {
-      trip.markShopPickedUp(shop.shopId);
-    }
-  }
-
-  it('starts a collector at store collection and ends after hub handover', () => {
-    loginAs('COLLECTOR');
-
-    trip.acceptOrder();
-    expect(trip.tripState()).toBe('HEADING_TO_HUB');
-
-    collectAllShops();
-    trip.completeCollectorHandover();
-
-    expect(trip.tripState()).toBe('IDLE');
-    expect(trip.hasIncomingOrder()).toBe(false);
-  });
-
-  it('starts a delivery driver at hub pickup before customer delivery', () => {
-    loginAs('DELIVERY');
-
-    trip.acceptOrder();
-    expect(trip.tripState()).toBe('HUB_PICKUP');
-
-    trip.confirmHubPickup();
-    expect(trip.tripState()).toBe('HEADING_TO_CUSTOMER');
-  });
-
-  it('keeps the full collection and delivery flow for both roles', () => {
-    loginAs('BOTH');
-
-    trip.acceptOrder();
-    expect(trip.tripState()).toBe('HEADING_TO_HUB');
-
-    collectAllShops();
-    trip.markPickedUp();
-
-    expect(trip.tripState()).toBe('HEADING_TO_CUSTOMER');
-  });
-
-  it('persists the selected demo role', () => {
-    loginAs('DELIVERY');
-
-    expect(auth.currentUserRole()).toBe('DELIVERY');
-    expect(window.localStorage.getItem('combo-driver-mock-role')).toBe('DELIVERY');
-  });
 });
+
+function flags(mode: TaskFlags['mode']): TaskFlags {
+  return {
+    mode,
+    labelAr: mode,
+    requiresCollection: mode !== 'DELIVER_ONLY',
+    requiresHubStop: true,
+    requiresDelivery: mode !== 'COLLECT_ONLY',
+    collectsCash: mode !== 'COLLECT_ONLY',
+    isRoleOverride: false,
+  };
+}
+
+function liveOffer(): CaptainOffer {
+  return {
+    id: 'offer-1',
+    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    task: {
+      id: 'task-1',
+      orderNumber: 'CMB-1',
+      flags: flags('COLLECT_AND_DELIVER'),
+      pickupHubName: 'هب التجمع',
+      hub: { id: 'hub-1', name: 'هب التجمع', address: null, location: { lat: 1, lng: 2 } },
+      dropoffArea: 'التجمع',
+      vendorsCount: 1,
+      itemsCount: 2,
+      cashToCollect: 15000,
+      expectedEarnings: 0,
+      totalDistanceMeters: 1000,
+      etaMinutes: 8,
+    },
+  };
+}
+
+function vendorStop(): TaskStop {
+  return {
+    id: 'stop-vendor',
+    seq: 1,
+    kind: 'VENDOR',
+    status: 'PENDING',
+    location: { lat: 30, lng: 31 },
+    shop: {
+      subOrderId: 'sub-1',
+      vendorId: 'vendor-1',
+      name: 'متجر',
+      phone: null,
+      status: 'READY_FOR_PICKUP',
+      notes: null,
+      itemsCount: 1,
+      items: [],
+      subtotal: 0,
+    },
+  };
+}
+
+function customerStop(status: TaskStop['status']): TaskStop {
+  return {
+    id: 'stop-customer',
+    seq: 2,
+    kind: 'CUSTOMER',
+    status,
+    location: { lat: 30.2, lng: 31.2 },
+    shop: null,
+  };
+}
+
+function vendorTask(): CaptainTask {
+  return {
+    id: 'task-1',
+    status: 'IN_PROGRESS',
+    flags: flags('COLLECT_AND_DELIVER'),
+    order: { id: 'order-1', orderNumber: 'CMB-1', notes: null, callBeforeDelivery: false },
+    hub: { id: 'hub-1', name: 'هب', address: 'عنوان', location: { lat: 30.1, lng: 31.1 } },
+    customer: null,
+    cashToCollect: 0,
+    stops: [vendorStop()],
+    currentStopId: 'stop-vendor',
+    openIssue: null,
+    totalDistanceMeters: 1000,
+    etaMinutes: 8,
+    expectedEarnings: 0,
+  };
+}
+
+function customerTask(status: TaskStop['status'] = 'PENDING', taskStatus: CaptainTask['status'] = 'IN_PROGRESS'): CaptainTask {
+  const active = taskStatus === 'ASSIGNED' || taskStatus === 'IN_PROGRESS';
+  return {
+    id: 'task-1',
+    status: taskStatus,
+    flags: flags('DELIVER_ONLY'),
+    order: { id: 'order-1', orderNumber: 'CMB-1', notes: null, callBeforeDelivery: false },
+    hub: { id: 'hub-1', name: 'هب', address: 'عنوان', location: { lat: 30.1, lng: 31.1 } },
+    customer: {
+      name: 'مريم',
+      phone: '010',
+      address: 'التجمع',
+      floor: null,
+      apartment: null,
+      landmark: null,
+      deliveryInstructions: null,
+      location: { lat: 30.2, lng: 31.2 },
+    },
+    cashToCollect: 25000,
+    stops: [customerStop(status)],
+    currentStopId: active ? 'stop-customer' : null,
+    openIssue: null,
+    totalDistanceMeters: 1000,
+    etaMinutes: 8,
+    expectedEarnings: 0,
+  };
+}

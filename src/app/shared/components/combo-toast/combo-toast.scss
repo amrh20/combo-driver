@@ -1,0 +1,30 @@
+.combo-toast {
+  position: fixed;
+  z-index: 40;
+  inset-inline: 16px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(100% - 32px, 420px);
+  margin-inline: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--Combo-border-border-error);
+  border-radius: 16px;
+  background: var(--Combo-bg-background-white);
+  box-shadow: 0 16px 40px var(--Combo-alpha-alpha-black-10);
+
+  &__message {
+    color: var(--Combo-text-text-error);
+    line-height: 1.5;
+  }
+
+  &__dismiss {
+    flex-shrink: 0;
+    border: 0;
+    background: transparent;
+    color: var(--Combo-text-text-default);
+    cursor: pointer;
+  }
+}

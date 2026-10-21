@@ -1,0 +1,8 @@
+@if (message(); as text) {
+  <div class="combo-toast" role="alert" aria-live="assertive">
+    <p class="combo-toast__message combo-fs-14 combo-m-0">{{ text }}</p>
+    <button type="button" class="combo-toast__dismiss combo-fs-12 font-bold" (click)="dismiss()">
+      إغلاق
+    </button>
+  </div>
+}

@@ -28,8 +28,13 @@
       border-color 0.2s ease,
       transform 0.2s ease;
 
-    &:active {
+    &:active:not(:disabled) {
       transform: scale(0.98);
+    }
+
+    &:disabled {
+      cursor: progress;
+      opacity: 0.72;
     }
   }
 
@@ -509,6 +514,27 @@
   &__hint {
     color: var(--Combo-text-text-secondary-paragraph);
     line-height: 1.5;
+  }
+}
+
+.reason-field {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--Combo-border-border-neutral-primary);
+  border-radius: 16px;
+  background: var(--Combo-bg-background-white);
+  color: var(--Combo-text-text-display);
+  resize: vertical;
+
+  &::placeholder {
+    color: var(--Combo-text-text-secondary-paragraph);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--Combo-border-border-primary);
   }
 }
 

@@ -1,41 +1,43 @@
-import { Component, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { catchError, of, switchMap } from 'rxjs';
 
-import { AuthService, DriverRole } from '../../../core/services/auth';
-import { ComboButton } from '../../../shared/components';
-
-interface DriverRoleOption {
-  value: DriverRole;
-  label: string;
-  hint: string;
-}
+import { ApiErrorBody } from '../../../core/models';
+import { AuthService, landingPath } from '../../../core/services/auth';
+import { AvailabilityService } from '../../../core/services/availability.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { ComboButton, ComboPasswordInput } from '../../../shared/components';
 
 @Component({
   selector: 'app-login',
-  imports: [ComboButton, ReactiveFormsModule, RouterLink],
+  imports: [ComboButton, ComboPasswordInput, ReactiveFormsModule, RouterLink],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
 export class Login {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly availability = inject(AvailabilityService);
+  private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly errorMessage = signal('');
-  readonly roleOptions: DriverRoleOption[] = [
-    { value: 'COLLECTOR', label: 'مُجمّع طلبات', hint: 'Collector' },
-    { value: 'DELIVERY', label: 'طيار توصيل', hint: 'Delivery' },
-    { value: 'BOTH', label: 'مُجمّع وطيار', hint: 'Both' },
-  ];
+  readonly submitting = signal(false);
   readonly form = this.fb.nonNullable.group({
-    phone: ['01000000000', [Validators.required, Validators.minLength(8)]],
-    password: ['driver123', [Validators.required, Validators.minLength(6)]],
-    role: [this.authService.currentUserRole(), Validators.required],
+    phone: ['', [Validators.required, Validators.minLength(8)]],
+    password: ['', [Validators.required]],
   });
 
   submit(): void {
     this.errorMessage.set('');
+
+    if (this.submitting()) {
+      return;
+    }
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -43,13 +45,60 @@ export class Login {
       return;
     }
 
-    const { phone, password, role } = this.form.getRawValue();
+    const { phone, password } = this.form.getRawValue();
+    this.submitting.set(true);
 
-    if (!this.authService.login(phone, password, role)) {
-      this.errorMessage.set('بيانات الدخول غير صحيحة.');
-      return;
-    }
-
-    void this.router.navigate(['/home']);
+    this.authService
+      .login(phone, password)
+      .pipe(
+        switchMap(() => this.authService.fetchProfile()),
+        switchMap((profile) =>
+          this.availability.load().pipe(
+            catchError(() => of(null)),
+            switchMap(() => of(profile))
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (profile) => {
+          this.submitting.set(false);
+          void this.router.navigate([landingPath(profile.role)]);
+        },
+        error: (error: unknown) => {
+          this.authService.logout().subscribe(() => {
+            this.submitting.set(false);
+            const message = loginErrorMessage(error);
+            this.errorMessage.set(message);
+            this.toast.show(message);
+          });
+        },
+      });
   }
+}
+
+function loginErrorMessage(error: unknown): string {
+  if (!(error instanceof HttpErrorResponse)) {
+    return 'تعذر تسجيل الدخول. حاول مرة أخرى.';
+  }
+
+  const code = (error.error as ApiErrorBody | null)?.error?.code;
+
+  if (code === 'ACCOUNT_BLOCKED' || (error.status === 403 && code !== 'PASSWORD_CHANGE_REQUIRED')) {
+    return 'تم إيقاف حسابك من قبل الإدارة. يرجى التواصل مع الدعم.';
+  }
+
+  if (code === 'PASSWORD_CHANGE_REQUIRED') {
+    return 'يلزم تغيير كلمة المرور قبل المتابعة.';
+  }
+
+  if (error.status === 401 || code === 'INVALID_CREDENTIALS') {
+    return 'بيانات الدخول غير صحيحة. تأكد من رقم الهاتف وكلمة المرور.';
+  }
+
+  if (error.status === 0) {
+    return 'تعذر الاتصال بالخادم. تأكد أن الخدمة تعمل.';
+  }
+
+  return 'تعذر تسجيل الدخول. حاول مرة أخرى.';
 }

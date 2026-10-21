@@ -10,7 +10,9 @@ export type DeliveryIssueType =
   | 'CUSTOMER_UNREACHABLE'
   | 'WRONG_GPS'
   | 'CUSTOMER_REFUSED'
-  | 'VEHICLE_BREAKDOWN';
+  | 'VEHICLE_BREAKDOWN'
+  | 'SHOP_PROBLEM'
+  | 'OTHER';
 
 export interface DeliveryIssueOption {
   type: DeliveryIssueType;

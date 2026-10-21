@@ -1,11 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 
 import { DELIVERY_ISSUE_OPTIONS } from '../../../core/mocks/driver.mock';
 import { DeliveryIssueType } from '../../../core/models';
-import { AuthService } from '../../../core/services/auth';
 import { TripService } from '../../../core/services/trip.service';
 import { ComboBottomSheet, ComboButton } from '../../../shared/components';
-import { formatMoney, formatNumber } from '../../../shared/utils/format';
+import { formatNumber, formatPiastres } from '../../../shared/utils/format';
 import { openExternalNavigation } from '../../../shared/utils/navigation';
 
 @Component({
@@ -15,45 +14,57 @@ import { openExternalNavigation } from '../../../shared/utils/navigation';
   styleUrl: './home.scss',
 })
 export class Home {
-  private readonly auth = inject(AuthService);
   private readonly trip = inject(TripService);
 
-  readonly order = this.trip.order;
   readonly isOnline = this.trip.isOnline;
-  readonly hasIncomingOrder = this.trip.hasIncomingOrder;
-  readonly tripState = this.trip.tripState;
-  readonly allShopsPickedUp = this.trip.allShopsPickedUp;
-  readonly pickedUpShopCount = this.trip.pickedUpShopCount;
-  readonly reportedIssue = this.trip.reportedIssue;
-  readonly currentUserRole = this.auth.currentUserRole;
+  readonly availabilityUpdating = this.trip.availabilityUpdating;
+  readonly screen = this.trip.screen;
+  readonly stateLabel = this.trip.stateLabel;
+  readonly offerCard = this.trip.offerCard;
+  readonly tripView = this.trip.tripView;
+  readonly pendingAction = this.trip.pendingAction;
+  readonly synced = this.trip.synced;
+  readonly farPrompt = this.trip.farPrompt;
   readonly issueOptions = DELIVERY_ISSUE_OPTIONS;
-  readonly canCollectFromStores = computed(() => this.currentUserRole() !== 'DELIVERY');
-  readonly canDeliverToCustomer = computed(() => this.currentUserRole() !== 'COLLECTOR');
-  /** Delivery riders receive one bag from the hub, so store count is hidden. */
-  readonly showOfferStores = computed(() => this.currentUserRole() !== 'DELIVERY');
-  /** Collectors stay at the hub and do not see customer-facing offer data. */
-  readonly showOfferDistance = computed(() => this.currentUserRole() !== 'COLLECTOR');
-  readonly showOfferDropoff = computed(() => this.currentUserRole() !== 'COLLECTOR');
-  readonly showOfferCash = computed(() => this.currentUserRole() !== 'COLLECTOR');
-  readonly offerEarningsLabel = computed(() =>
-    this.currentUserRole() === 'COLLECTOR' ? 'مكافأة التجميع' : 'أرباح التوصيل'
-  );
-  readonly showOfferMeta = computed(
-    () => this.showOfferStores() || this.showOfferDistance() || this.showOfferCash()
-  );
-  readonly storeCollectionActionLabel = computed(() =>
-    this.currentUserRole() === 'COLLECTOR'
-      ? 'تسليم الطلب في نقطة التجميع'
-      : 'بدء التوصيل للعميل'
-  );
+
+  constructor() {
+    effect(() => {
+      if (this.farPrompt()) {
+        return;
+      }
+
+      untracked(() => this.farReason.set(''));
+    });
+  }
 
   readonly issueSheetOpen = signal(false);
   readonly selectedIssue = signal<DeliveryIssueType | null>(null);
+  readonly declineSheetOpen = signal(false);
+  readonly declineReason = signal('');
+  readonly farReason = signal('');
 
-  /** Independent accordion open state per shop card (shopId → expanded). */
   private readonly expandedShopIds = signal<ReadonlySet<string>>(new Set());
 
-  formatMoney = formatMoney;
+  readonly reportedIssueLabel = computed(() => {
+    const issue = this.trip.task()?.openIssue;
+    if (!issue) {
+      return null;
+    }
+
+    return this.issueOptions.find((option) => option.type === issue.type)?.label ?? issue.type;
+  });
+
+  readonly farDistanceLabel = computed(() => {
+    const prompt = this.farPrompt();
+    if (!prompt || prompt.distanceMeters === null) {
+      return 'الموقع غير متاح أو بعيد عن العميل. اكتب أين تم التسليم.';
+    }
+
+    const max = prompt.maxMeters === null ? '' : ` (الحد ${formatNumber(prompt.maxMeters)} متر)`;
+    return `أنت على بعد ${formatNumber(prompt.distanceMeters)} متر من موقع العميل${max}.`;
+  });
+
+  formatPiastres = formatPiastres;
   formatNumber = formatNumber;
 
   isShopExpanded(shopId: string): boolean {
@@ -72,67 +83,62 @@ export class Home {
     });
   }
 
-  readonly reportedIssueLabel = computed(() => {
-    const issue = this.reportedIssue();
-    if (!issue) {
-      return null;
-    }
-
-    return this.issueOptions.find((option) => option.type === issue)?.label ?? null;
-  });
-
-  readonly stateLabel = computed(() => {
-    switch (this.tripState()) {
-      case 'HEADING_TO_HUB':
-        return 'استلام من المتاجر';
-      case 'HUB_PICKUP':
-        return 'استلام من نقطة التجميع';
-      case 'HEADING_TO_CUSTOMER':
-        return 'في الطريق إلى العميل';
-      case 'COLLECTION':
-        return 'التحصيل والتسليم';
-      case 'ISSUE_REPORTED':
-        return 'طلب معلّق — بانتظار الإغلاق';
-      default:
-        return this.isOnline() ? 'متاح لاستلام الطلبات' : 'غير متصل';
-    }
-  });
-
   toggleOnline(): void {
     this.trip.toggleOnline();
   }
 
-  acceptOrder(): void {
-    this.trip.acceptOrder();
+  acceptOffer(): void {
+    this.trip.acceptOffer();
   }
 
-  rejectOrder(): void {
-    this.trip.rejectOrder();
-  }
-
-  markShopPickedUp(shopId: string): void {
-    this.trip.markShopPickedUp(shopId);
-  }
-
-  completeStoreCollection(): void {
-    if (this.currentUserRole() === 'COLLECTOR') {
-      this.trip.completeCollectorHandover();
+  openDeclineSheet(): void {
+    if (this.pendingAction()) {
       return;
     }
 
-    this.trip.markPickedUp();
+    this.declineReason.set('');
+    this.declineSheetOpen.set(true);
   }
 
-  confirmHubPickup(): void {
-    this.trip.confirmHubPickup();
+  closeDeclineSheet(): void {
+    if (this.pendingAction() === 'decline') {
+      return;
+    }
+
+    this.declineSheetOpen.set(false);
+    this.declineReason.set('');
   }
 
-  markArrived(): void {
-    this.trip.markArrived();
+  onDeclineInput(value: string): void {
+    this.declineReason.set(value);
+  }
+
+  confirmDecline(): void {
+    const reason = this.declineReason().trim();
+    if (!reason) {
+      return;
+    }
+
+    this.declineSheetOpen.set(false);
+    this.declineReason.set('');
+    this.trip.declineOffer(reason);
+  }
+
+  completeStop(stopId: string): void {
+    this.trip.completeCurrentStop(stopId);
+  }
+
+  arriveAtCustomer(): void {
+    this.trip.arriveAtCustomer();
   }
 
   completeDelivery(): void {
-    this.trip.completeDelivery();
+    const stopId = this.tripView()?.currentStopId;
+    if (!stopId) {
+      return;
+    }
+
+    this.trip.completeCurrentStop(stopId);
   }
 
   openNavigation(lat: number, lng: number): void {
@@ -140,11 +146,19 @@ export class Home {
   }
 
   openIssueSheet(): void {
+    if (this.pendingAction()) {
+      return;
+    }
+
     this.selectedIssue.set(null);
     this.issueSheetOpen.set(true);
   }
 
   closeIssueSheet(): void {
+    if (this.pendingAction() === 'issue') {
+      return;
+    }
+
     this.issueSheetOpen.set(false);
     this.selectedIssue.set(null);
   }
@@ -155,16 +169,25 @@ export class Home {
 
   confirmIssueReport(): void {
     const issue = this.selectedIssue();
-
     if (!issue) {
       return;
     }
 
-    this.trip.reportDeliveryIssue(issue);
-    this.closeIssueSheet();
+    this.issueSheetOpen.set(false);
+    this.selectedIssue.set(null);
+    this.trip.reportIssue(issue);
   }
 
-  resolveFailedDelivery(): void {
-    this.trip.resolveFailedDelivery();
+  onFarReasonInput(value: string): void {
+    this.farReason.set(value);
+  }
+
+  confirmFarReason(): void {
+    this.trip.submitFarReason(this.farReason());
+  }
+
+  closeFarPrompt(): void {
+    this.trip.dismissFarPrompt();
+    this.farReason.set('');
   }
 }

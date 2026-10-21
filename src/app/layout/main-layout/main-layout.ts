@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
-import { AuthService } from '../../core/services/auth';
+import { AuthService, landingPath } from '../../core/services/auth';
 import { ComboButton } from '../../shared/components';
 
 @Component({
@@ -15,16 +15,29 @@ export class MainLayout {
   private readonly router = inject(Router);
 
   readonly driver = this.authService.driver;
+  readonly loggingOut = signal(false);
 
-  readonly navItems = [
-    { label: 'الرئيسية', hint: 'Home', link: '/home' },
+  readonly navItems = computed(() => [
+    { label: 'الرئيسية', hint: 'Home', link: landingPath(this.authService.currentUserRole()) },
     { label: 'المحفظة', hint: 'Wallet', link: '/wallet' },
     { label: 'السجل', hint: 'History', link: '/history' },
     { label: 'الشيفت', hint: 'Shifts', link: '/shifts' }
-  ];
+  ]);
 
   logout(): void {
-    this.authService.logout();
-    void this.router.navigate(['/auth/login']);
+    if (this.loggingOut()) {
+      return;
+    }
+
+    this.loggingOut.set(true);
+
+    this.authService.logout().subscribe({
+      next: () => {
+        void this.router.navigate(['/auth/login']);
+      },
+      error: () => {
+        void this.router.navigate(['/auth/login']);
+      },
+    });
   }
 }

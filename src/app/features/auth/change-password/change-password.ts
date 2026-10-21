@@ -3,11 +3,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth';
-import { ComboButton } from '../../../shared/components';
+import { ComboButton, ComboPasswordInput } from '../../../shared/components';
 
 @Component({
   selector: 'app-change-password',
-  imports: [ComboButton, ReactiveFormsModule, RouterLink],
+  imports: [ComboButton, ComboPasswordInput, ReactiveFormsModule, RouterLink],
   templateUrl: './change-password.html',
   styleUrl: './change-password.scss',
 })
