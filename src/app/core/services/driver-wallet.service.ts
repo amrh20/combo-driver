@@ -1,177 +1,279 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable, catchError, finalize, map, of, switchMap, tap } from 'rxjs';
 
-import { driverTransactions } from '../mocks/driver.mock';
+import { piastresToEgp } from '../../shared/utils/format';
+import { API_BASE_URL } from '../config/api';
+import { CursorPage, collectCursorPages } from '../http/cursor-page';
+import { idempotencyHeaders } from '../http/idempotency';
 import {
-  ActiveDriverOrder,
+  CASH_IN_HAND_LIMIT_EGP,
+  CASH_IN_HAND_WARNING_EGP,
+  CaptainWallet,
+  CashSettlement,
+  CashSettlementStatus,
+  DriverWalletState,
   LedgerTransaction,
-  SettlementBucket,
+  SettlementTransaction,
 } from '../models';
+
+const WALLET_URL = `${API_BASE_URL}/v1/captain/wallet`;
+const SETTLE_URL = `${API_BASE_URL}/v1/captain/wallet/settle`;
+const SETTLE_PAYOUT_URL = `${API_BASE_URL}/v1/captain/wallet/settle-payout`;
+const SETTLEMENT_HISTORY_URL = `${API_BASE_URL}/v1/captain/wallet/history`;
+const PAGE_LIMIT = '100';
+
+const EMPTY_WALLET: DriverWalletState = {
+  unremittedCash: 0,
+  earnings: 0,
+  bonus: 0,
+  advances: 0,
+};
 
 @Injectable({
   providedIn: 'root',
 })
 export class DriverWalletService {
-  /** Ledger is the single source of truth for all wallet balances. */
-  private readonly transactions = signal<LedgerTransaction[]>([...driverTransactions]);
+  private readonly http = inject(HttpClient);
+
+  /** Bumped on logout so an in-flight response cannot restore the previous captain. */
+  private generation = 0;
+
+  private readonly balances = signal<DriverWalletState>(EMPTY_WALLET);
+  /** No ledger list endpoint yet. The screen reads this and shows its empty state. */
+  private readonly transactions = signal<LedgerTransaction[]>([]);
+  private readonly settlementsState = signal<CashSettlement[]>([]);
+  private readonly pendingCash = signal(false);
 
   readonly ledgerTransactions = this.transactions.asReadonly();
+  readonly settlements = this.settlementsState.asReadonly();
+  readonly loading = signal(false);
 
-  readonly unremittedCash = computed(() =>
-    this.reduceBucket(
-      this.transactions(),
-      (txn) => (txn.type === 'CASH_COLLECTION' ? txn.amount : 0),
-      'CASH'
-    )
-  );
+  readonly unremittedCash = computed(() => this.balances().unremittedCash);
+  /** Company cash / العهدة. Same bucket as `unremittedCash`. */
+  readonly companyCashBalance = this.unremittedCash;
+  readonly earnings = computed(() => this.balances().earnings);
+  readonly bonus = computed(() => this.balances().bonus);
+  readonly advances = computed(() => this.balances().advances);
+  readonly hasPendingCashSettlement = this.pendingCash.asReadonly();
 
-  readonly earnings = computed(() =>
-    this.reduceBucket(
-      this.transactions(),
-      (txn) => (txn.type === 'ORDER_DELIVERY' ? txn.amount : 0),
-      'EARNINGS'
-    )
-  );
+  /** EGP. Each bucket is divided by 100 before this sum. */
+  readonly netPayout = computed(() => this.earnings() + this.bonus() - this.advances());
 
-  readonly bonus = computed(() =>
-    this.reduceBucket(
-      this.transactions(),
-      (txn) => (txn.type === 'BONUS' ? txn.amount : 0),
-      'BONUS'
-    )
-  );
+  readonly isCashWarning = computed(() => {
+    const cash = this.unremittedCash();
+    return cash >= CASH_IN_HAND_WARNING_EGP && cash < CASH_IN_HAND_LIMIT_EGP;
+  });
 
-  readonly advances = computed(() =>
-    this.reduceBucket(
-      this.transactions(),
-      (txn) => (txn.type === 'ADVANCE' ? txn.amount : 0),
-      'ADVANCE'
-    )
-  );
+  readonly isCashBlocked = computed(() => this.unremittedCash() >= CASH_IN_HAND_LIMIT_EGP);
 
-  /** Records cash + earnings ledger rows for a successful delivery. */
-  recordSuccessfulDelivery(order: ActiveDriverOrder): void {
-    const now = Date.now();
-    const occurredAt = new Date(now).toISOString();
+  /** `GET /v1/captain/wallet`. Stores balances in EGP. */
+  load(options?: { settlements?: boolean }): Observable<void> {
+    const generation = this.generation;
+    this.loading.set(true);
 
-    this.appendMany([
-      {
-        id: `TXN-${order.id}-CASH-${now}`,
-        type: 'CASH_COLLECTION',
-        amount: order.finalCashTotal,
-        description: 'تحصيل نقدي من العميل',
-        orderId: order.id,
-        occurredAt,
-      },
-      {
-        id: `TXN-${order.id}-DEL-${now + 1}`,
-        type: 'ORDER_DELIVERY',
-        amount: order.expectedEarnings,
-        description: `أرباح توصيل — طلب ${order.id}`,
-        orderId: order.id,
-        occurredAt: new Date(now + 1000).toISOString(),
-      },
-    ]);
+    const afterWallet = options?.settlements
+      ? this.readSettlements(generation).pipe(catchError(() => of(undefined)))
+      : of(undefined);
+
+    return this.readWallet(generation).pipe(
+      catchError(() => of(undefined)),
+      switchMap(() => afterWallet),
+      finalize(() => {
+        if (generation === this.generation) {
+          this.loading.set(false);
+        }
+      }),
+    );
   }
 
-  /** Settles company cash by appending a CASH settlement equal to current balance. */
-  clearUnremittedCash(): void {
-    const amount = this.unremittedCash();
-    if (amount <= 0) {
+  /**
+   * Asks ops to take the current company-cash balance.
+   * The row stays PENDING and the balance does not move until they confirm.
+   */
+  settleCash(): Observable<void> {
+    const generation = this.generation;
+
+    return this.http
+      .post<SettlementTransaction>(SETTLE_URL, {}, { headers: idempotencyHeaders(crypto.randomUUID()) })
+      .pipe(
+        tap((row) => this.applySettlementIfCurrent(generation, row)),
+        switchMap(() => this.readWallet(generation).pipe(catchError(() => of(undefined)))),
+      );
+  }
+
+  /** Pays out earnings, bonus, and advances together. Applied immediately. */
+  settlePayout(): Observable<void> {
+    const generation = this.generation;
+
+    return this.http
+      .post<CaptainWallet>(SETTLE_PAYOUT_URL, {}, { headers: idempotencyHeaders(crypto.randomUUID()) })
+      .pipe(
+        tap((wallet) => this.applyIfCurrent(generation, wallet)),
+        switchMap(() => this.readWallet(generation).pipe(catchError(() => of(undefined)))),
+      );
+  }
+
+  clear(): void {
+    this.generation += 1;
+    this.balances.set(EMPTY_WALLET);
+    this.transactions.set([]);
+    this.settlementsState.set([]);
+    this.pendingCash.set(false);
+    this.loading.set(false);
+  }
+
+  private readWallet(generation: number): Observable<void> {
+    return this.http.get<CaptainWallet | null>(WALLET_URL).pipe(
+      tap((wallet) => this.applyIfCurrent(generation, wallet)),
+      map(() => undefined),
+    );
+  }
+
+  private readSettlements(generation: number): Observable<void> {
+    return collectCursorPages<SettlementTransaction>((cursor) =>
+      this.http.get<CursorPage<SettlementTransaction>>(SETTLEMENT_HISTORY_URL, {
+        params: pageParams(cursor),
+      }),
+    ).pipe(
+      tap((rows) => {
+        if (generation !== this.generation) {
+          return;
+        }
+
+        const settlements = rows.map(toCashSettlement).filter((row): row is CashSettlement => row !== null);
+        this.settlementsState.set(settlements);
+        this.pendingCash.set(settlements.some((row) => row.status === 'PENDING'));
+      }),
+      map(() => undefined),
+    );
+  }
+
+  /**
+   * A failed refresh keeps the last known balances so a blip cannot lift the cash block.
+   * An empty body still zeros the screen.
+   */
+  private applyIfCurrent(generation: number, wallet: CaptainWallet | null | undefined): void {
+    if (generation !== this.generation) {
       return;
     }
 
-    this.appendSettlement(amount, 'توريد عهدة نقدية للهب', 'CASH');
-  }
-
-  /** Settles personal net payout by zeroing earnings, bonus, and advances via settlements. */
-  clearNetPayout(): void {
-    const earnings = this.earnings();
-    const bonus = this.bonus();
-    const advances = this.advances();
-
-    if (earnings <= 0 && bonus <= 0 && advances <= 0) {
+    if (!wallet) {
+      this.balances.set(EMPTY_WALLET);
+      this.pendingCash.set(false);
       return;
     }
 
-    const stamp = Date.now();
-    const rows: LedgerTransaction[] = [];
+    this.balances.set({
+      unremittedCash: piastresToEgp(readCashPiastres(wallet)),
+      earnings: piastresToEgp(asPiastres(wallet.earnings)),
+      bonus: piastresToEgp(asPiastres(wallet.bonus)),
+      advances: piastresToEgp(asPiastres(wallet.advances)),
+    });
+    this.pendingCash.set(isPendingSettlement(wallet.pendingSettlement));
 
-    if (earnings > 0) {
-      rows.push(
-        this.buildSettlement(
-          `TXN-SETTLE-EARN-${stamp}`,
-          earnings,
-          'قبض مستحقات الأرباح',
-          'EARNINGS'
-        )
-      );
+    const pending = toCashSettlement(wallet.pendingSettlement);
+    if (pending) {
+      this.prependSettlement(pending);
+    }
+  }
+
+  private applySettlementIfCurrent(generation: number, row: SettlementTransaction): void {
+    if (generation !== this.generation) {
+      return;
     }
 
-    if (bonus > 0) {
-      rows.push(
-        this.buildSettlement(
-          `TXN-SETTLE-BONUS-${stamp + 1}`,
-          bonus,
-          'قبض البونص',
-          'BONUS'
-        )
-      );
+    const settlement = toCashSettlement(row);
+    if (!settlement) {
+      return;
     }
 
-    if (advances > 0) {
-      rows.push(
-        this.buildSettlement(
-          `TXN-SETTLE-ADV-${stamp + 2}`,
-          advances,
-          'تسوية السلف مع المستحقات',
-          'ADVANCE'
-        )
-      );
-    }
-
-    this.appendMany(rows);
+    this.prependSettlement(settlement);
+    this.pendingCash.set(settlement.status === 'PENDING');
   }
 
-  private reduceBucket(
-    transactions: LedgerTransaction[],
-    creditOf: (txn: LedgerTransaction) => number,
-    bucket: SettlementBucket
-  ): number {
-    return transactions.reduce((sum, txn) => {
-      const credit = creditOf(txn);
-      const debit =
-        txn.type === 'SETTLEMENT' && txn.settles === bucket ? txn.amount : 0;
-      return sum + credit - debit;
-    }, 0);
+  private prependSettlement(settlement: CashSettlement): void {
+    this.settlementsState.update((current) => {
+      if (current.some((row) => row.id === settlement.id)) {
+        return current.map((row) => (row.id === settlement.id ? settlement : row));
+      }
+
+      return [settlement, ...current];
+    });
+  }
+}
+
+function pageParams(cursor?: string): Record<string, string> {
+  const params: Record<string, string> = { limit: PAGE_LIMIT };
+
+  if (cursor) {
+    params['cursor'] = cursor;
   }
 
-  private appendSettlement(
-    amount: number,
-    description: string,
-    settles: SettlementBucket
-  ): void {
-    this.appendMany([
-      this.buildSettlement(`TXN-SETTLE-${settles}-${Date.now()}`, amount, description, settles),
-    ]);
+  return params;
+}
+
+function readCashPiastres(wallet: CaptainWallet): number {
+  const record = wallet as CaptainWallet & Record<string, unknown>;
+  return asPiastres(
+    record.companyCashBalance ??
+      record['company_cash_balance'] ??
+      record.unremittedCash ??
+      record['unremitted_cash'],
+  );
+}
+
+function isPendingSettlement(value: SettlementTransaction | null | undefined): boolean {
+  return toCashSettlement(value)?.status === 'PENDING';
+}
+
+function toCashSettlement(value: SettlementTransaction | null | undefined | unknown): CashSettlement | null {
+  if (!value || typeof value !== 'object') {
+    return null;
   }
 
-  private buildSettlement(
-    id: string,
-    amount: number,
-    description: string,
-    settles: SettlementBucket
-  ): LedgerTransaction {
-    return {
-      id,
-      type: 'SETTLEMENT',
-      amount,
-      description,
-      occurredAt: new Date().toISOString(),
-      settles,
-    };
+  const record = value as Record<string, unknown>;
+  const amount = piastresToEgp(asPiastres(record['amount']));
+  const status = readSettlementStatus(record['status']);
+  const occurredAt = readText(record['createdAt'] ?? record['occurredAt']);
+
+  if (amount <= 0 || !status) {
+    return null;
   }
 
-  private appendMany(rows: LedgerTransaction[]): void {
-    this.transactions.update((list) => [...rows, ...list]);
+  return {
+    id: readText(record['id']) || crypto.randomUUID(),
+    amount,
+    occurredAt: occurredAt || new Date().toISOString(),
+    status,
+  };
+}
+
+function readSettlementStatus(value: unknown): CashSettlementStatus | null {
+  if (typeof value !== 'string') {
+    return null;
   }
+
+  const normalized = value.trim().toUpperCase();
+  if (normalized === 'PENDING' || normalized === 'CONFIRMED' || normalized === 'REJECTED') {
+    return normalized;
+  }
+
+  return null;
+}
+
+function readText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function asPiastres(value: unknown): number {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    return Number(value);
+  }
+
+  return Number.NaN;
 }

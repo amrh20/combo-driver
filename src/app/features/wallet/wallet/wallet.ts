@@ -1,7 +1,12 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+import { CashSettlementStatus } from '../../../core/models';
+import { formatArabicDateTime } from '../../../core/mocks/date-helpers';
 import { AuthService } from '../../../core/services/auth';
 import { DriverWalletService } from '../../../core/services/driver-wallet.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { ComboButton } from '../../../shared/components';
 import { formatMoney } from '../../../shared/utils/format';
 
@@ -13,9 +18,11 @@ type ConfirmAction = 'remit' | 'payout' | null;
   templateUrl: './wallet.html',
   styleUrl: './wallet.scss',
 })
-export class Wallet {
+export class Wallet implements OnInit {
   private readonly walletService = inject(DriverWalletService);
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly currentUserRole = this.auth.currentUserRole;
   readonly showCashRemittance = computed(
@@ -25,16 +32,23 @@ export class Wallet {
     this.currentUserRole() === 'COLLECTOR' ? 'مكافأة التجميع' : 'أرباح التوصيل'
   );
 
-  readonly unremittedCash = this.walletService.unremittedCash;
+  readonly loading = this.walletService.loading;
+  readonly unremittedCash = this.walletService.companyCashBalance;
   readonly earnings = this.walletService.earnings;
   readonly bonus = this.walletService.bonus;
   readonly advances = this.walletService.advances;
-
-  readonly netPayout = computed(
-    () => this.earnings() + this.bonus() - this.advances()
-  );
-
+  readonly netPayout = this.walletService.netPayout;
+  readonly settlements = this.walletService.settlements;
+  readonly hasPendingCashSettlement = this.walletService.hasPendingCashSettlement;
   readonly pendingConfirm = signal<ConfirmAction>(null);
+  readonly settling = signal(false);
+  readonly cashActionDisabled = computed(
+    () =>
+      this.loading() ||
+      this.settling() ||
+      this.hasPendingCashSettlement() ||
+      this.unremittedCash() <= 0,
+  );
 
   readonly confirmTitle = computed(() => {
     switch (this.pendingConfirm()) {
@@ -50,7 +64,7 @@ export class Wallet {
   readonly confirmMessage = computed(() => {
     switch (this.pendingConfirm()) {
       case 'remit':
-        return `هل تم توريد ${formatMoney(this.unremittedCash())} للهب؟ سيتم تصفير العهدة الحالية.`;
+        return `هل تم توريد ${formatMoney(this.unremittedCash())} للعمليات؟ سيُرسل الطلب للتأكيد، والعهدة تبقى كما هي حتى يؤكدها فريق العمليات.`;
       case 'payout':
         return `هل تم قبض ${formatMoney(this.netPayout())} من المستحقات؟ سيتم تصفير الصافي المستحق.`;
       default:
@@ -59,9 +73,32 @@ export class Wallet {
   });
 
   formatMoney = formatMoney;
+  formatSettlementDate = formatArabicDateTime;
+
+  ngOnInit(): void {
+    this.walletService
+      .load({ settlements: true })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
+  }
+
+  cashActionLabel(): string {
+    return this.hasPendingCashSettlement() ? 'في انتظار تأكيد العمليات' : 'تم توريد الكاش';
+  }
+
+  settlementStatusLabel(status: CashSettlementStatus): string {
+    switch (status) {
+      case 'PENDING':
+        return 'قيد الانتظار';
+      case 'REJECTED':
+        return 'مرفوض';
+      default:
+        return 'تم التأكيد';
+    }
+  }
 
   openRemitConfirm(): void {
-    if (this.unremittedCash() <= 0) {
+    if (this.cashActionDisabled()) {
       return;
     }
 
@@ -69,7 +106,7 @@ export class Wallet {
   }
 
   openPayoutConfirm(): void {
-    if (this.netPayout() <= 0) {
+    if (this.settling() || this.netPayout() <= 0) {
       return;
     }
 
@@ -77,20 +114,58 @@ export class Wallet {
   }
 
   closeConfirm(): void {
+    if (this.settling()) {
+      return;
+    }
+
     this.pendingConfirm.set(null);
   }
 
   confirmAction(): void {
     const action = this.pendingConfirm();
 
-    if (action === 'remit') {
-      this.walletService.clearUnremittedCash();
+    if (!action || this.settling()) {
+      return;
     }
 
-    if (action === 'payout') {
-      this.walletService.clearNetPayout();
-    }
+    this.settling.set(true);
 
-    this.pendingConfirm.set(null);
+    const request = action === 'remit' ? this.walletService.settleCash() : this.walletService.settlePayout();
+
+    request.subscribe({
+      next: () => {
+        this.settling.set(false);
+        this.pendingConfirm.set(null);
+      },
+      error: (error: unknown) => {
+        this.settling.set(false);
+
+        if (error instanceof HttpErrorResponse && error.status === 409) {
+          this.pendingConfirm.set(null);
+          this.walletService.load({ settlements: true }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+            next: () => {
+              if (action === 'remit' && this.hasPendingCashSettlement()) {
+                this.toast.show('طلب التوريد قيد انتظار تأكيد العمليات.');
+                return;
+              }
+
+              this.toast.show(action === 'remit' ? 'العهدة صفر بالفعل.' : 'لا توجد مستحقات للقبض.');
+            },
+            error: () => undefined,
+          });
+          return;
+        }
+
+        this.toast.show(settlementErrorMessage(error));
+      },
+    });
   }
+}
+
+function settlementErrorMessage(error: unknown): string {
+  if (error instanceof HttpErrorResponse && error.status === 0) {
+    return 'تعذر الاتصال بالخادم. تأكد أن الخدمة تعمل.';
+  }
+
+  return 'تعذر تنفيذ التسوية. حاول مرة أخرى.';
 }

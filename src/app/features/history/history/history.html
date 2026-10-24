@@ -1,9 +1,7 @@
-<section class="history-screen">
+<section class="history-screen" [attr.aria-busy]="loading()">
   <div class="history-screen__intro combo-mb-12">
     <p class="history-screen__eyebrow combo-fs-12 font-bold combo-mb-8">السجل</p>
-    <h2 class="history-screen__title font-kufam combo-fs-24 font-bold combo-m-0">
-      سجل الطلبات
-    </h2>
+    <h2 class="history-screen__title font-kufam combo-fs-24 font-bold combo-m-0">سجل الطلبات</h2>
   </div>
 
   <div class="history-filters">
@@ -64,16 +62,27 @@
     </div>
 
     <p class="history-filters__summary combo-fs-13 font-bold combo-m-0" aria-live="polite">
-      عدد الطلبات: <span class="font-numerals">{{ filteredSummary().orderCount }}</span>
-      <span class="history-filters__summary-sep" aria-hidden="true">|</span>
-      إجمالي الأرباح: <span class="font-numerals">{{ formatProfit(filteredSummary().totalProfit) }}</span>
+      @if (loading()) {
+        جاري تحميل السجل...
+      } @else {
+        عدد الطلبات: <span class="font-numerals">{{ filteredSummary().orderCount }}</span>
+        <span class="history-filters__summary-sep" aria-hidden="true">|</span>
+        إجمالي الأرباح:
+        <span class="font-numerals">{{ formatProfit(filteredSummary().totalProfit) }}</span>
+      }
     </p>
   </div>
 
   <div class="history-list d-flex flex-column gap-3">
-    @if (filteredOrders().length === 0) {
+    @if (loading()) {
       <article class="history-empty driver-card combo-p-24">
-        <p class="history-empty__text combo-fs-14 combo-m-0">لا توجد طلبات مطابقة للفلاتر المحددة.</p>
+        <p class="history-empty__text combo-fs-14 combo-m-0">جاري تحميل السجل...</p>
+      </article>
+    } @else if (filteredOrders().length === 0) {
+      <article class="history-empty driver-card combo-p-24">
+        <p class="history-empty__text combo-fs-14 combo-m-0">
+          لا توجد طلبات مطابقة للفلاتر المحددة.
+        </p>
       </article>
     } @else {
       @for (order of filteredOrders(); track order.id) {
@@ -81,14 +90,26 @@
           class="history-item driver-card combo-p-20"
           [class.history-item--cancelled]="isCancelled(order)"
         >
-          <div>
+          <div class="history-item__body">
             <div class="history-item__head d-flex align-items-center gap-2 combo-mb-6">
-              <p class="history-item__id combo-fs-16 font-bold combo-m-0">{{ order.id }}</p>
+              <p class="history-item__id combo-fs-16 font-bold combo-m-0">
+                {{ order.orderNumber }}
+              </p>
               <span class="history-item__status combo-fs-11 font-bold">
                 {{ statusLabel(order.status) }}
               </span>
             </div>
             <p class="history-item__date combo-fs-13 combo-m-0">{{ order.date }}</p>
+            <div class="history-item__meta combo-fs-12">
+              <p class="combo-m-0">العميل: {{ order.customerName || '—' }}</p>
+              <p class="combo-m-0">
+                عدد المتاجر: <span class="font-numerals">{{ order.shopsCount }}</span>
+              </p>
+              <p class="combo-m-0">
+                طريقة الدفع: {{ paymentLabel(order.paymentMethod) }} -
+                <span class="font-numerals">{{ formatCustomerTotal(order) }}</span>
+              </p>
+            </div>
           </div>
 
           <div class="history-item__profit">
@@ -96,7 +117,9 @@
             @if (isCancelled(order)) {
               <strong class="font-numerals combo-fs-18 font-semibold">—</strong>
             } @else {
-              <strong class="font-numerals combo-fs-18 font-semibold">{{ formatProfit(order.profit) }}</strong>
+              <strong class="font-numerals combo-fs-18 font-semibold">{{
+                formatProfit(orderProfitEgp(order))
+              }}</strong>
             }
           </div>
         </article>

@@ -11,6 +11,7 @@ import { CaptainOffer, CaptainTask, RealtimeMessage, TaskFlags, TaskStop } from 
 import { AuthService } from './auth';
 import { AvailabilityService } from './availability.service';
 import { CaptainLocationService } from './captain-location.service';
+import { DriverWalletService } from './driver-wallet.service';
 import { RealtimeService } from './realtime.service';
 import { ToastService } from './toast.service';
 import { TripService } from './trip.service';
@@ -24,16 +25,22 @@ describe('TripService', () => {
   let toast: ToastService;
   let authed: WritableSignal<boolean>;
   let online: WritableSignal<boolean>;
+  let cashBlocked: WritableSignal<boolean>;
   let messages$: Subject<RealtimeMessage>;
   let connected$: Subject<void>;
   let startRealtime: ReturnType<typeof vi.fn>;
+  let setOnline: ReturnType<typeof vi.fn>;
+  let loadWallet: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     authed = signal(false);
     online = signal(false);
+    cashBlocked = signal(false);
     messages$ = new Subject();
     connected$ = new Subject();
     startRealtime = vi.fn();
+    setOnline = vi.fn(() => of({ online: true, shift: null }));
+    loadWallet = vi.fn(() => of(undefined));
 
     TestBed.configureTestingModule({
       providers: [
@@ -48,7 +55,14 @@ describe('TripService', () => {
           useValue: {
             isOnline: online.asReadonly(),
             updating: signal(false),
-            setOnline: vi.fn(() => of({ online: true, shift: null })),
+            setOnline,
+          },
+        },
+        {
+          provide: DriverWalletService,
+          useValue: {
+            isCashBlocked: cashBlocked.asReadonly(),
+            load: loadWallet,
           },
         },
         {
@@ -136,7 +150,19 @@ describe('TripService', () => {
     expect(trip.offer()).toBeNull();
   });
 
-  it('completes only the current stop and sends cash in piastres for a cash delivery', () => {
+  it('completes a pending vendor that is not currentStopId', () => {
+    goOnline(null, multiVendorTask());
+    trip.completeCurrentStop('stop-vendor-2');
+
+    const pickup = http.expectOne(
+      `${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-vendor-2/complete`,
+    );
+    expect(pickup.request.body).toEqual({ location: { lat: 30.1, lng: 31.2 } });
+    pickup.flush(multiVendorTask('stop-vendor-2'));
+    expect(trip.pendingAction()).toBeNull();
+  });
+
+  it('completes a known pending stop and sends cash in piastres for a cash delivery', () => {
     goOnline(null, vendorTask());
     trip.completeCurrentStop('stop-other');
     http.expectNone(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-other/complete`);
@@ -162,7 +188,16 @@ describe('TripService', () => {
     });
     deliver.flush(customerTask('DONE', 'COMPLETED'));
     expect(trip.screen()).toBe('IDLE');
+    expect(loadWallet).toHaveBeenCalled();
     http.expectOne(offersUrl).flush(null);
+  });
+
+  it('does not go online when company cash is at the hard limit', () => {
+    cashBlocked.set(true);
+    trip.toggleOnline();
+
+    expect(setOnline).not.toHaveBeenCalled();
+    expect(toast.current()).toContain('تخطيت الحد الأقصى للعهدة');
   });
 
   it('shows the backend 409 message and reloads the current task', () => {
@@ -268,6 +303,7 @@ function liveOffer(): CaptainOffer {
       itemsCount: 2,
       cashToCollect: 15000,
       expectedEarnings: 0,
+      expectedCaptainProfit: 2000,
       totalDistanceMeters: 1000,
       etaMinutes: 8,
     },
@@ -321,6 +357,45 @@ function vendorTask(): CaptainTask {
     totalDistanceMeters: 1000,
     etaMinutes: 8,
     expectedEarnings: 0,
+  };
+}
+
+function shopStop(id: string, seq: number, status: TaskStop['status'] = 'PENDING'): TaskStop {
+  return {
+    id,
+    seq,
+    kind: 'VENDOR',
+    status,
+    location: { lat: 30, lng: 31 },
+    shop: {
+      subOrderId: `sub-${id}`,
+      vendorId: `vendor-${seq}`,
+      name: 'متجر',
+      phone: null,
+      status: 'READY_FOR_PICKUP',
+      notes: null,
+      itemsCount: 1,
+      items: [],
+      subtotal: 0,
+    },
+  };
+}
+
+function multiVendorTask(completedId?: string): CaptainTask {
+  const first = shopStop(
+    'stop-vendor-1',
+    1,
+    completedId === 'stop-vendor-1' ? 'DONE' : 'PENDING',
+  );
+  const second = shopStop(
+    'stop-vendor-2',
+    2,
+    completedId === 'stop-vendor-2' ? 'DONE' : 'PENDING',
+  );
+  return {
+    ...vendorTask(),
+    stops: [first, second],
+    currentStopId: first.status === 'PENDING' ? first.id : second.id,
   };
 }
 

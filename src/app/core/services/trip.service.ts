@@ -8,6 +8,7 @@ import { classifyCaptainError } from '../http/captain-error';
 import { idempotencyHeaders } from '../http/idempotency';
 import {
   ArriveStopBody,
+  CASH_IN_HAND_LIMIT_MESSAGE,
   CaptainOffer,
   CaptainTask,
   DeliveryIssueType,
@@ -29,6 +30,7 @@ import {
 import { AuthService } from './auth';
 import { AvailabilityService } from './availability.service';
 import { CaptainLocationService } from './captain-location.service';
+import { DriverWalletService } from './driver-wallet.service';
 import { RealtimeService } from './realtime.service';
 import { ToastService } from './toast.service';
 
@@ -45,6 +47,7 @@ export class TripService {
   private readonly location = inject(CaptainLocationService);
   private readonly realtime = inject(RealtimeService);
   private readonly toast = inject(ToastService);
+  private readonly wallet = inject(DriverWalletService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly offerState = signal<CaptainOffer | null>(null);
@@ -58,6 +61,7 @@ export class TripService {
   private readonly onOnline = (): void => this.refetchAfterReconnect();
 
   readonly pendingAction = signal<TripAction | null>(null);
+  readonly pendingStopId = signal<string | null>(null);
   readonly farPrompt = signal<GeofencePrompt | null>(null);
   /** False until the first `tasks/current` read settles, so a reload does not flash IDLE. */
   readonly synced = signal(false);
@@ -108,7 +112,23 @@ export class TripService {
       return;
     }
 
+    if (!this.isOnline() && this.wallet.isCashBlocked()) {
+      this.toast.show(CASH_IN_HAND_LIMIT_MESSAGE);
+      return;
+    }
+
     this.availability.setOnline(!this.isOnline()).subscribe({
+      error: () => undefined,
+    });
+  }
+
+  /** Closes the shift when company cash has hit the hard limit. */
+  forceOffline(): void {
+    if (this.availability.updating() || !this.isOnline()) {
+      return;
+    }
+
+    this.availability.setOnline(false).subscribe({
       error: () => undefined,
     });
   }
@@ -163,15 +183,26 @@ export class TripService {
       });
   }
 
-  /** Completes the stop only when it is `currentStopId`. */
+  /**
+   * Completes a stop. Vendor pickups can be any remaining shop, in any order.
+   * Hub and customer still have to be the current stop.
+   */
   completeCurrentStop(stopId: string, farReason?: string): void {
     const task = this.taskState();
-    if (!task || task.currentStopId !== stopId || this.pendingAction()) {
+    const stop = task?.stops.find((item) => item.id === stopId);
+    if (!task || !stop || this.pendingAction()) {
+      return;
+    }
+    if (stop.status === 'DONE' || stop.status === 'SKIPPED') {
+      return;
+    }
+    if (stop.kind !== 'VENDOR' && task.currentStopId !== stopId) {
       return;
     }
 
     const key = crypto.randomUUID();
     this.pendingAction.set('complete');
+    this.pendingStopId.set(stopId);
 
     this.location
       .current()
@@ -179,7 +210,7 @@ export class TripService {
         switchMap((location) =>
           this.http.post<CaptainTask>(
             `${API_BASE_URL}/v1/captain/tasks/${task.id}/stops/${stopId}/complete`,
-            completionBody(task, location, farReason),
+            completionBody(task, stopId, location, farReason),
             { headers: idempotencyHeaders(key) },
           ),
         ),
@@ -337,6 +368,12 @@ export class TripService {
     }
   }
 
+  private refreshWallet(): void {
+    this.wallet.load().subscribe({
+      error: () => undefined,
+    });
+  }
+
   private refreshOffer(): void {
     if (!this.auth.isAuthenticated()) {
       return;
@@ -411,6 +448,9 @@ export class TripService {
     if (!isActiveCaptainTask(task)) {
       const hadTask = this.taskState() !== null;
       this.taskState.set(null);
+      if (hadTask) {
+        this.refreshWallet();
+      }
       if (hadTask && this.availability.isOnline() && !this.pendingAction()) {
         this.heldOffer = undefined;
         this.refreshOffer();
@@ -442,6 +482,7 @@ export class TripService {
 
     if (!isActiveCaptainTask(task)) {
       this.taskState.set(null);
+      this.refreshWallet();
       if (this.availability.isOnline()) {
         this.refreshOffer();
       }
@@ -478,6 +519,7 @@ export class TripService {
   private release(action: TripAction): void {
     if (this.pendingAction() === action) {
       this.pendingAction.set(null);
+      this.pendingStopId.set(null);
     }
   }
 
@@ -490,16 +532,18 @@ export class TripService {
     this.offerState.set(null);
     this.taskState.set(null);
     this.pendingAction.set(null);
+    this.pendingStopId.set(null);
     this.farPrompt.set(null);
   }
 }
 
 function completionBody(
   task: CaptainTask,
+  stopId: string,
   location: { lat: number; lng: number } | undefined,
   farReason?: string,
 ): StopCompletionBody {
-  const stop = task.stops.find((item) => item.id === task.currentStopId);
+  const stop = task.stops.find((item) => item.id === stopId);
   const body: StopCompletionBody = {};
 
   if (location) {

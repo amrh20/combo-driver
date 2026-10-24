@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { ShiftSession, ShiftTimeFilter } from '../../../core/models';
 import { DriverStatusService } from '../../../core/services/driver-status.service';
@@ -11,26 +12,13 @@ import { DriverStatusService } from '../../../core/services/driver-status.servic
 })
 export class ShiftTracker {
   private readonly driverStatus = inject(DriverStatusService);
+  private readonly destroyRef = inject(DestroyRef);
 
+  readonly shiftsLoading = this.driverStatus.shiftsLoading;
   readonly activeTimeFilter = signal<ShiftTimeFilter>('today');
 
-  readonly filteredSessions = computed(() => {
-    const range = this.getTimeRange(this.activeTimeFilter());
-
-    return this.driverStatus
-      .sessions()
-      .filter((session) => {
-        if (!range) {
-          return true;
-        }
-
-        const startedAt = new Date(session.startTime);
-        return startedAt >= range.start && startedAt <= range.end;
-      })
-      .sort(
-        (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-      );
-  });
+  /** Open shift first (when online), then closed shifts already filtered by the API period. */
+  readonly filteredSessions = this.driverStatus.sessions;
 
   readonly filteredSummary = computed(() => {
     const totalMinutes = this.filteredSessions().reduce(
@@ -44,6 +32,16 @@ export class ShiftTracker {
       totalLabel: this.driverStatus.formatDuration(totalMinutes),
     };
   });
+
+  constructor() {
+    effect(() => {
+      const period = this.activeTimeFilter();
+      this.driverStatus.isOnline();
+      untracked(() => {
+        this.driverStatus.loadClosedShifts(period).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+      });
+    });
+  }
 
   selectTimeFilter(filter: ShiftTimeFilter): void {
     this.activeTimeFilter.set(filter);
@@ -71,41 +69,9 @@ export class ShiftTracker {
 
   sessionDuration(session: ShiftSession): string {
     if (this.isActiveSession(session)) {
-      return this.driverStatus.formatDuration(
-        this.driverStatus.getSessionDurationMinutes(session)
-      );
+      return this.driverStatus.formatDuration(this.driverStatus.getSessionDurationMinutes(session));
     }
 
     return this.formatDuration(session.durationMinutes);
-  }
-
-  private getTimeRange(filter: ShiftTimeFilter): { start: Date; end: Date } | null {
-    if (filter === 'all') {
-      return null;
-    }
-
-    const end = this.endOfDay(new Date());
-    const start = new Date(end);
-
-    if (filter === 'today') {
-      start.setHours(0, 0, 0, 0);
-      return { start, end };
-    }
-
-    if (filter === 'week') {
-      start.setDate(start.getDate() - 6);
-      start.setHours(0, 0, 0, 0);
-      return { start, end };
-    }
-
-    start.setDate(1);
-    start.setHours(0, 0, 0, 0);
-    return { start, end };
-  }
-
-  private endOfDay(date: Date): Date {
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-    return end;
   }
 }

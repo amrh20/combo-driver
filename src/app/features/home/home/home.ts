@@ -1,20 +1,30 @@
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { DELIVERY_ISSUE_OPTIONS } from '../../../core/mocks/driver.mock';
-import { DeliveryIssueType } from '../../../core/models';
+import {
+  CASH_IN_HAND_LIMIT_MESSAGE,
+  CASH_IN_HAND_WARNING_MESSAGE,
+  DeliveryIssueType,
+} from '../../../core/models';
+import { CaptainLocationService } from '../../../core/services/captain-location.service';
+import { DriverWalletService } from '../../../core/services/driver-wallet.service';
 import { TripService } from '../../../core/services/trip.service';
-import { ComboBottomSheet, ComboButton } from '../../../shared/components';
+import { ComboBottomSheet, ComboButton, ComboMap } from '../../../shared/components';
 import { formatNumber, formatPiastres } from '../../../shared/utils/format';
 import { openExternalNavigation } from '../../../shared/utils/navigation';
 
 @Component({
   selector: 'app-home',
-  imports: [ComboButton, ComboBottomSheet],
+  imports: [ComboButton, ComboBottomSheet, ComboMap],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
-export class Home {
+export class Home implements OnInit {
   private readonly trip = inject(TripService);
+  private readonly location = inject(CaptainLocationService);
+  private readonly wallet = inject(DriverWalletService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly isOnline = this.trip.isOnline;
   readonly availabilityUpdating = this.trip.availabilityUpdating;
@@ -23,9 +33,17 @@ export class Home {
   readonly offerCard = this.trip.offerCard;
   readonly tripView = this.trip.tripView;
   readonly pendingAction = this.trip.pendingAction;
+  readonly pendingStopId = this.trip.pendingStopId;
   readonly synced = this.trip.synced;
   readonly farPrompt = this.trip.farPrompt;
+  readonly captainPoint = this.location.point;
   readonly issueOptions = DELIVERY_ISSUE_OPTIONS;
+  readonly isCashWarning = this.wallet.isCashWarning;
+  readonly isCashBlocked = this.wallet.isCashBlocked;
+  readonly cashWarningMessage = CASH_IN_HAND_WARNING_MESSAGE;
+  readonly cashLimitMessage = CASH_IN_HAND_LIMIT_MESSAGE;
+
+  private readonly cashOfflineAttempted = signal(false);
 
   constructor() {
     effect(() => {
@@ -35,6 +53,41 @@ export class Home {
 
       untracked(() => this.farReason.set(''));
     });
+
+    effect((onCleanup) => {
+      if (this.screen() !== 'CUSTOMER') {
+        return;
+      }
+
+      this.location.startWatch();
+      onCleanup(() => this.location.stopWatch());
+    });
+
+    effect(() => {
+      const blocked = this.isCashBlocked();
+      const idle = this.screen() === 'IDLE';
+      const online = this.isOnline();
+      const updating = this.availabilityUpdating();
+      const synced = this.synced();
+
+      if (!blocked) {
+        untracked(() => this.cashOfflineAttempted.set(false));
+        return;
+      }
+
+      if (!synced || !idle || !online || updating || this.cashOfflineAttempted()) {
+        return;
+      }
+
+      untracked(() => {
+        this.cashOfflineAttempted.set(true);
+        this.trip.forceOffline();
+      });
+    });
+  }
+
+  ngOnInit(): void {
+    this.wallet.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
   readonly issueSheetOpen = signal(false);
@@ -84,6 +137,10 @@ export class Home {
   }
 
   toggleOnline(): void {
+    if (this.isCashBlocked() && !this.isOnline()) {
+      return;
+    }
+
     this.trip.toggleOnline();
   }
 
@@ -143,6 +200,14 @@ export class Home {
 
   openNavigation(lat: number, lng: number): void {
     openExternalNavigation(lat, lng);
+  }
+
+  callCustomer(phone: string): void {
+    if (!phone) {
+      return;
+    }
+
+    window.location.assign(`tel:${phone}`);
   }
 
   openIssueSheet(): void {

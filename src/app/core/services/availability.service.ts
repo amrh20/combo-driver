@@ -78,6 +78,7 @@ export class AvailabilityService {
   clear(): void {
     this.updating.set(false);
     this.driverStatus.applyAvailability({ online: false, shift: null });
+    this.driverStatus.clearClosedShifts();
   }
 
   private fetchAvailability(): Observable<CaptainAvailability> {

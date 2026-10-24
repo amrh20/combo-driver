@@ -1,9 +1,12 @@
-<section class="wallet-screen d-flex flex-column gap-4">
+<section class="wallet-screen d-flex flex-column gap-4" [attr.aria-busy]="loading()">
   <div class="wallet-screen__intro">
     <p class="wallet-screen__eyebrow combo-fs-12 font-bold combo-mb-8">المحفظة</p>
     <h2 class="wallet-screen__title font-kufam combo-fs-24 font-bold combo-m-0">
       التسوية اليومية
     </h2>
+    @if (loading()) {
+      <p class="wallet-screen__status combo-fs-13 combo-mt-8 combo-mb-0">جاري تحميل الأرصدة...</p>
+    }
   </div>
 
   @if (showCashRemittance()) {
@@ -20,16 +23,16 @@
         {{ formatMoney(unremittedCash()) }}
       </strong>
       <p class="wallet-card__hint combo-fs-13 combo-mb-20">
-        إجمالي النقد المحصل من العملاء ولم يُورَّد للهب بعد.
+        عهدة الشركة من تحصيل الكاش، ولم تُورَّد للعمليات بعد.
       </p>
 
       <combo-button
         size="lg"
         [fullWidth]="true"
-        [disabled]="unremittedCash() <= 0"
+        [disabled]="cashActionDisabled()"
         (clicked)="openRemitConfirm()"
       >
-        تم توريد الكاش
+        {{ cashActionLabel() }}
       </combo-button>
     </article>
   }
@@ -69,15 +72,54 @@
       </strong>
     </div>
 
-    <combo-button
+    <!-- <combo-button
       size="lg"
       [fullWidth]="true"
-      [disabled]="netPayout() <= 0"
+      [disabled]="loading() || settling() || netPayout() <= 0"
       (clicked)="openPayoutConfirm()"
     >
       تم قبض المستحقات
-    </combo-button>
+    </combo-button> -->
   </article>
+
+  <section class="wallet-settlements" aria-label="سجل التوريد">
+    <div class="wallet-settlements__intro combo-mb-12">
+      <h3 class="wallet-settlements__title font-kufam combo-fs-18 font-bold combo-m-0">
+        سجل التوريد
+      </h3>
+      <p class="wallet-settlements__hint combo-fs-13 combo-mt-4 combo-mb-0">
+        تاريخ توريد الكاش وحالة تأكيد العمليات.
+      </p>
+    </div>
+
+    @if (settlements().length === 0) {
+      <article class="wallet-settlements__empty driver-card combo-p-20">
+        <p class="combo-fs-14 combo-m-0">لا توجد تسويات حتى الآن.</p>
+      </article>
+    } @else {
+      <ul class="wallet-settlements__list d-flex flex-column gap-3">
+        @for (row of settlements(); track row.id) {
+          <li class="wallet-settlements__item driver-card combo-p-16">
+            <div class="wallet-settlements__copy">
+              <p class="wallet-settlements__date combo-fs-13 combo-m-0">
+                {{ formatSettlementDate(row.occurredAt) }}
+              </p>
+              <strong class="wallet-settlements__amount font-numerals combo-fs-16 font-bold">
+                {{ formatMoney(row.amount) }}
+              </strong>
+            </div>
+            <span
+              class="wallet-settlements__status combo-fs-11 font-bold"
+              [class.wallet-settlements__status--pending]="row.status === 'PENDING'"
+              [class.wallet-settlements__status--rejected]="row.status === 'REJECTED'"
+            >
+              {{ settlementStatusLabel(row.status) }}
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
 
   <combo-button variant="outline" color="primary" size="lg" [fullWidth]="true" link="/wallet/ledger">
     كشف الحساب المفصل
@@ -99,8 +141,17 @@
       <p class="wallet-dialog__message combo-fs-14 combo-mb-24">{{ confirmMessage() }}</p>
 
       <div class="wallet-dialog__actions d-grid gap-3">
-        <combo-button size="lg" [fullWidth]="true" (clicked)="confirmAction()">تأكيد</combo-button>
-        <combo-button variant="outline" color="neutral" size="lg" [fullWidth]="true" (clicked)="closeConfirm()">
+        <combo-button size="lg" [fullWidth]="true" [loading]="settling()" (clicked)="confirmAction()">
+          تأكيد
+        </combo-button>
+        <combo-button
+          variant="outline"
+          color="neutral"
+          size="lg"
+          [fullWidth]="true"
+          [disabled]="settling()"
+          (clicked)="closeConfirm()"
+        >
           إلغاء
         </combo-button>
       </div>

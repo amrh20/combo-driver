@@ -8,6 +8,7 @@ import { catchError, of, switchMap } from 'rxjs';
 import { ApiErrorBody } from '../../../core/models';
 import { AuthService, landingPath } from '../../../core/services/auth';
 import { AvailabilityService } from '../../../core/services/availability.service';
+import { DriverWalletService } from '../../../core/services/driver-wallet.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ComboButton, ComboPasswordInput } from '../../../shared/components';
 
@@ -21,6 +22,7 @@ export class Login {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly availability = inject(AvailabilityService);
+  private readonly wallet = inject(DriverWalletService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -55,7 +57,12 @@ export class Login {
         switchMap((profile) =>
           this.availability.load().pipe(
             catchError(() => of(null)),
-            switchMap(() => of(profile))
+            switchMap(() =>
+              this.wallet.load().pipe(
+                catchError(() => of(undefined)),
+                switchMap(() => of(profile)),
+              ),
+            ),
           )
         ),
         takeUntilDestroyed(this.destroyRef)

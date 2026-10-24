@@ -99,12 +99,46 @@ export interface ShiftSession {
   durationMinutes: number | null;
 }
 
+/** `COD` is cash on delivery. `CARD` and `WALLET` are paid online. */
+export type OrderPaymentMethod = 'COD' | 'CARD' | 'WALLET';
+
+/** `GET /v1/captain/orders/history` row. Money is integer piastres. */
+export interface CaptainOrderHistoryItem {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  occurredAt: string;
+  status: 'COMPLETED';
+  customerName: string;
+  /** Shops still on the order. Rejected and cancelled bags are not counted. */
+  shopsCount: number;
+  paymentMethod: OrderPaymentMethod;
+  captainProfit: number;
+  customerTotal: number;
+}
+
+/** `GET /v1/captain/shifts` row. Closed shifts only; `durationMinutes` is authoritative. */
+export interface CaptainShift {
+  id: string;
+  startedAt: string;
+  endedAt: string;
+  endTime: string;
+  durationMinutes: number;
+}
+
 export interface CompletedDriverOrder {
   id: string;
+  orderNumber: string;
   date: string;
   occurredAt: string;
   status: HistoryOrderStatus;
-  profit: number;
+  customerName: string;
+  shopsCount: number;
+  paymentMethod: OrderPaymentMethod | null;
+  /** Integer piastres from the API. Divide by 100 before showing EGP. */
+  captainProfit: number;
+  /** Integer piastres. What the customer was charged. */
+  customerTotal: number;
 }
 
 export interface DriverProfile {

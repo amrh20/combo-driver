@@ -8,6 +8,7 @@ import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { availabilitySyncInterceptor } from './core/interceptors/availability-sync.interceptor';
 import { AuthService } from './core/services/auth';
 import { AvailabilityService } from './core/services/availability.service';
+import { DriverWalletService } from './core/services/driver-wallet.service';
 import { TripService } from './core/services/trip.service';
 
 export const appConfig: ApplicationConfig = {
@@ -18,6 +19,7 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => {
       const auth = inject(AuthService);
       const availability = inject(AvailabilityService);
+      const wallet = inject(DriverWalletService);
       inject(TripService);
 
       if (!auth.isAuthenticated()) {
@@ -26,6 +28,7 @@ export const appConfig: ApplicationConfig = {
 
       return firstValueFrom(auth.fetchProfile())
         .then(() => firstValueFrom(availability.load()).catch(() => undefined))
+        .then(() => firstValueFrom(wallet.load()).catch(() => undefined))
         .catch(() => firstValueFrom(auth.logout()));
     })
   ]

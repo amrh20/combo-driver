@@ -38,7 +38,6 @@ export interface ShopStopView {
   itemsCount: number;
   status: StopStatus;
   statusLabel: string;
-  isCurrent: boolean;
   isDone: boolean;
   lat: number;
   lng: number;
@@ -127,7 +126,7 @@ export function buildOfferCard(offer: CaptainOffer): OfferCardView {
   return {
     id: task.orderNumber,
     earningsLabel: task.flags.mode === 'COLLECT_ONLY' ? 'مكافأة التجميع' : 'أرباح التوصيل',
-    earningsPiastres: task.expectedEarnings,
+    earningsPiastres: task.expectedCaptainProfit,
     pickupHubName: task.pickupHubName,
     dropoffArea: task.dropoffArea,
     showDropoff: task.flags.requiresDelivery && !!task.dropoffArea,
@@ -162,7 +161,7 @@ export function buildTripView(task: CaptainTask): ActiveTripView {
     hubLng: task.hub.location.lng,
     hubTitle: hubTitle(task.flags.mode),
     hubActionLabel: hubActionLabel(task.flags.mode),
-    vendorStops: shops.map((stop) => toShopView(stop, stop.id === task.currentStopId)),
+    vendorStops: shops.map((stop) => toShopView(stop)),
     pickedUpCount: shops.filter((stop) => stop.status === 'DONE' || stop.status === 'SKIPPED').length,
     vendorsCount: shops.length,
     itemsCount: shops.reduce((sum, stop) => sum + (stop.shop?.itemsCount ?? 0), 0),
@@ -221,7 +220,7 @@ export function hubActionLabel(mode: AssignmentMode): string {
   }
 }
 
-function toShopView(stop: TaskStop, isCurrent: boolean): ShopStopView {
+function toShopView(stop: TaskStop): ShopStopView {
   const shop = stop.shop;
   const items = (shop?.items ?? []).map((item) => ({
     id: item.id,
@@ -236,8 +235,7 @@ function toShopView(stop: TaskStop, isCurrent: boolean): ShopStopView {
     phone: shop?.phone ?? null,
     itemsCount: shop?.itemsCount ?? items.length,
     status: stop.status,
-    statusLabel: shopStatusLabel(stop.status, isCurrent),
-    isCurrent,
+    statusLabel: shopStatusLabel(stop.status),
     isDone: stop.status === 'DONE' || stop.status === 'SKIPPED',
     lat: stop.location.lat,
     lng: stop.location.lng,
@@ -246,7 +244,7 @@ function toShopView(stop: TaskStop, isCurrent: boolean): ShopStopView {
   };
 }
 
-function shopStatusLabel(status: StopStatus, isCurrent: boolean): string {
+function shopStatusLabel(status: StopStatus): string {
   switch (status) {
     case 'DONE':
       return 'تم الاستلام';
@@ -255,6 +253,6 @@ function shopStatusLabel(status: StopStatus, isCurrent: boolean): string {
     case 'ARRIVED':
       return 'وصلت للمتجر';
     default:
-      return isCurrent ? 'بانتظار الاستلام' : 'لاحقاً';
+      return 'بانتظار الاستلام';
   }
 }

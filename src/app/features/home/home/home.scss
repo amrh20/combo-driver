@@ -1,3 +1,44 @@
+.cash-alert {
+  border-color: var(--Combo-border-border-warning);
+  background: var(--Combo-bg-background-white);
+
+  &__title {
+    color: var(--Combo-text-text-warning);
+  }
+
+  &__text {
+    color: var(--Combo-text-text-secondary-paragraph);
+    line-height: 1.6;
+  }
+}
+
+.cash-block {
+  min-height: 48dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--Combo-bg-background-white);
+
+  &__icon {
+    width: 96px;
+    height: 96px;
+    margin-bottom: 24px;
+    color: var(--Combo-text-text-error);
+  }
+
+  &__title {
+    color: var(--Combo-text-text-display);
+  }
+
+  &__message {
+    max-width: 320px;
+    color: var(--Combo-text-text-secondary-paragraph);
+    line-height: 1.7;
+  }
+}
+
 .home-screen {
   &__status {
     border-color: var(--Combo-border-border-primary);
@@ -206,14 +247,7 @@
   }
 
   &__map {
-    min-height: 140px;
-    display: grid;
-    place-items: center;
-    gap: 6px;
-    border: 1px dashed var(--Combo-border-border-primary);
-    border-radius: 24px;
-    background: var(--Combo-bg-background-primary-25);
-    color: var(--Combo-text-text-primary);
+    min-height: 180px;
   }
 }
 
@@ -457,25 +491,24 @@
 }
 
 .collection-card {
-  min-height: 72dvh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  border-radius: 28px;
-  background: var(--Combo-bg-background-black);
-  color: var(--Combo-text-text-oncolor-primary);
-
-  &__label {
-    color: var(--Combo-bg-background-primary-400);
+  &__cash {
+    border-radius: 16px;
+    background: var(--Combo-bg-background-primary-25);
+    border: 1px solid var(--Combo-border-border-primary);
+    text-align: center;
   }
 
-  &__amount {
-    font-size: clamp(42px, 12vw, 72px);
-    line-height: 1.15;
+  &__cash-label {
+    color: var(--Combo-text-text-primary);
   }
 
-  &__text {
-    color: var(--Combo-alpha-alpha-white-80);
+  &__cash-amount {
+    color: var(--Combo-text-text-display);
+    line-height: 1.1;
+  }
+
+  &__cash-hint {
+    color: var(--Combo-text-text-secondary-paragraph);
   }
 }
 

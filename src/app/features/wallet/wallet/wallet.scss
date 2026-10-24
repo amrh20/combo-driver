@@ -6,6 +6,10 @@
   &__title {
     color: var(--Combo-text-text-display);
   }
+
+  &__status {
+    color: var(--Combo-text-text-secondary-paragraph);
+  }
 }
 
 .wallet-card {
@@ -93,6 +97,68 @@
     border-radius: 16px;
     background: var(--Combo-bg-background-neutral-50);
     color: var(--Combo-text-text-display);
+  }
+}
+
+.wallet-settlements {
+  &__title {
+    color: var(--Combo-text-text-display);
+  }
+
+  &__hint,
+  &__empty {
+    color: var(--Combo-text-text-secondary-paragraph);
+  }
+
+  &__empty {
+    text-align: center;
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--Combo-bg-background-white);
+  }
+
+  &__copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__date {
+    color: var(--Combo-text-text-secondary-paragraph);
+  }
+
+  &__amount {
+    color: var(--Combo-text-text-display);
+  }
+
+  &__status {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--Combo-bg-background-primary-50);
+    color: var(--Combo-text-text-primary);
+
+    &--pending {
+      background: var(--Combo-bg-background-warning-50);
+      color: var(--Combo-text-text-warning);
+    }
+
+    &--rejected {
+      background: var(--Combo-state-error-lighter, var(--Combo-bg-background-error-50));
+      color: var(--Combo-text-text-error);
+    }
   }
 }
 

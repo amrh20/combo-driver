@@ -1,4 +1,5 @@
 import { CaptainOffer, CaptainTask, TaskFlags, TaskStop } from '../models';
+import { formatPiastres } from '../../shared/utils/format';
 import {
   buildOfferCard,
   buildTripView,
@@ -60,29 +61,43 @@ describe('captain screen state', () => {
     expect(card.showCash).toBe(true);
     expect(card.distanceKm).toBe(4.2);
     expect(card.earningsLabel).toBe('أرباح التوصيل');
+    expect(card.earningsPiastres).toBe(2000);
+    expect(formatPiastres(card.earningsPiastres)).toBe('20 ج.م');
 
     const collectOnly = offer();
     collectOnly.task.flags = flags('COLLECT_ONLY');
     collectOnly.task.dropoffArea = null;
+    collectOnly.task.expectedCaptainProfit = 500;
     const collectCard = buildOfferCard(collectOnly);
     expect(collectCard.showDropoff).toBe(false);
     expect(collectCard.showCash).toBe(false);
     expect(collectCard.showStores).toBe(true);
     expect(collectCard.earningsLabel).toBe('مكافأة التجميع');
+    expect(collectCard.earningsPiastres).toBe(500);
+    expect(formatPiastres(collectCard.earningsPiastres)).toBe('5 ج.م');
   });
 
-  it('labels the hub action from flags.mode and only marks the current shop', () => {
+  it('labels the hub action from flags.mode and treats every pending shop as awaiting pickup', () => {
     expect(hubActionLabel('DELIVER_ONLY')).toBe('تأكيد استلام الطلب من نقطة التجميع');
     expect(hubActionLabel('COLLECT_ONLY')).toBe('تسليم الطلب في نقطة التجميع');
     expect(hubActionLabel('COLLECT_AND_DELIVER')).toBe('بدء التوصيل للعميل');
 
     const view = buildTripView(task({
-      stops: [vendorStop('DONE', 'stop-done'), vendorStop('PENDING', 'stop-vendor'), hubStop()],
+      currentStopId: 'stop-a',
+      stops: [
+        vendorStop('DONE', 'stop-done'),
+        vendorStop('PENDING', 'stop-a'),
+        vendorStop('PENDING', 'stop-b'),
+        hubStop(),
+      ],
     }));
-    expect(view.vendorStops.map((shop) => shop.isCurrent)).toEqual([false, true]);
     expect(view.pickedUpCount).toBe(1);
-    expect(view.vendorStops[1]?.statusLabel).toBe('بانتظار الاستلام');
-    expect(view.vendorStops[0]?.statusLabel).toBe('تم الاستلام');
+    expect(view.vendorStops.map((shop) => shop.isDone)).toEqual([true, false, false]);
+    expect(view.vendorStops.map((shop) => shop.statusLabel)).toEqual([
+      'تم الاستلام',
+      'بانتظار الاستلام',
+      'بانتظار الاستلام',
+    ]);
   });
 });
 
@@ -184,6 +199,7 @@ function offer(expiresAt = '2026-10-18T12:01:00.000Z'): CaptainOffer {
       itemsCount: 2,
       cashToCollect: 15000,
       expectedEarnings: 0,
+      expectedCaptainProfit: 2000,
       totalDistanceMeters: 4200,
       etaMinutes: 12,
     },

@@ -9,10 +9,16 @@ export function formatPiastres(piastres: number): string {
   return `${formatted} ج.م`;
 }
 
-/** Formats amounts with Latin digits for clearer readability. */
+/** Converts integer piastres from the API into EGP. */
+export function piastresToEgp(piastres: number): number {
+  return Number.isFinite(piastres) ? piastres / 100 : 0;
+}
+
+/** Formats EGP amounts with Latin digits. Whole pounds stay integers; piastre remainders keep two decimals. */
 export function formatMoney(value: number): string {
   const formatted = new Intl.NumberFormat('en-EG', {
-    maximumFractionDigits: 0,
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
   }).format(value);
 
   return `${formatted} ج.م`;

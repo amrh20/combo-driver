@@ -5,6 +5,8 @@ import { Observable, catchError, finalize, map, of, shareReplay, tap, throwError
 import { API_BASE_URL } from '../config/api';
 import { CaptainLoginResponse, CaptainProfile, DriverProfile, DriverRole } from '../models';
 import { AvailabilityService } from './availability.service';
+import { DriverWalletService } from './driver-wallet.service';
+import { HistoryService } from './history.service';
 
 export type { DriverRole } from '../models';
 
@@ -32,6 +34,8 @@ export function landingPath(role: DriverRole | null): string {
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly availability = inject(AvailabilityService);
+  private readonly wallet = inject(DriverWalletService);
+  private readonly history = inject(HistoryService);
 
   private readonly accessToken = signal<string | null>(readStorage(ACCESS_TOKEN_KEY));
   private readonly refreshToken = signal<string | null>(readStorage(REFRESH_TOKEN_KEY));
@@ -144,6 +148,8 @@ export class AuthService {
     this.userRole.set(null);
     this.profile.set(null);
     this.availability.clear();
+    this.wallet.clear();
+    this.history.clear();
     removeStorage(ACCESS_TOKEN_KEY);
     removeStorage(REFRESH_TOKEN_KEY);
   }

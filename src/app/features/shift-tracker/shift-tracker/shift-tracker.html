@@ -1,4 +1,4 @@
-<section class="shift-screen">
+<section class="shift-screen" [attr.aria-busy]="shiftsLoading()">
   <div class="shift-screen__intro combo-mb-12">
     <p class="shift-screen__eyebrow combo-fs-12 font-bold combo-mb-8">الشيفت</p>
     <h2 class="shift-screen__title font-kufam combo-fs-24 font-bold combo-m-0">
@@ -46,17 +46,25 @@
 
     <article class="shift-summary driver-card combo-p-16" aria-live="polite">
       <span class="shift-summary__label combo-fs-13 font-bold">إجمالي ساعات العمل</span>
-      <strong class="shift-summary__value font-numerals combo-fs-28 font-bold combo-m-0">
-        {{ filteredSummary().totalLabel }}
-      </strong>
-      <p class="shift-summary__meta combo-fs-12 combo-m-0">
-        <span class="font-numerals">{{ filteredSummary().sessionCount }}</span> جلسة عمل
-      </p>
+      @if (shiftsLoading() && filteredSessions().length === 0) {
+        <strong class="shift-summary__value combo-fs-18 font-bold combo-m-0">جاري التحميل...</strong>
+      } @else {
+        <strong class="shift-summary__value font-numerals combo-fs-28 font-bold combo-m-0">
+          {{ filteredSummary().totalLabel }}
+        </strong>
+        <p class="shift-summary__meta combo-fs-12 combo-m-0">
+          <span class="font-numerals">{{ filteredSummary().sessionCount }}</span> جلسة عمل
+        </p>
+      }
     </article>
   </div>
 
   <div class="shift-list d-flex flex-column gap-3">
-    @if (filteredSessions().length === 0) {
+    @if (shiftsLoading() && filteredSessions().length === 0) {
+      <article class="shift-empty driver-card combo-p-24">
+        <p class="shift-empty__text combo-fs-14 combo-m-0">جاري تحميل الشيفتات...</p>
+      </article>
+    } @else if (filteredSessions().length === 0) {
       <article class="shift-empty driver-card combo-p-24">
         <p class="shift-empty__text combo-fs-14 combo-m-0">لا توجد جلسات عمل في الفترة المحددة.</p>
       </article>
@@ -68,7 +76,7 @@
         >
           <div class="shift-item__header d-flex align-items-center justify-content-between gap-3 combo-mb-12">
             <h3 class="shift-item__date combo-fs-15 font-bold combo-m-0">{{ session.date }}</h3>
-            @if (isActiveSession(session)) {
+            @if (session.endTime === null) {
               <span class="shift-item__badge combo-fs-11 font-bold">
                 <span class="shift-item__badge-dot" aria-hidden="true"></span>
                 جاري العمل...
@@ -88,18 +96,14 @@
               </strong>
             </div>
 
-            <div class="shift-item__row">
-              <span class="shift-item__label combo-fs-12">تسجيل الخروج</span>
-              @if (isActiveSession(session)) {
-                <strong class="shift-item__time shift-item__time--active combo-fs-14 font-bold">
-                  جاري العمل...
-                </strong>
-              } @else {
+            @if (session.endTime; as endTime) {
+              <div class="shift-item__row">
+                <span class="shift-item__label combo-fs-12">تسجيل الخروج</span>
                 <strong class="shift-item__time font-numerals combo-fs-14 font-semibold">
-                  {{ formatClockTime(session.endTime!) }}
+                  {{ formatClockTime(endTime) }}
                 </strong>
-              }
-            </div>
+              </div>
+            }
           </div>
         </article>
       }

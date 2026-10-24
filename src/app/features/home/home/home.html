@@ -6,6 +6,13 @@
     </h2>
   </div>
 
+  @if (isCashWarning() && !isCashBlocked()) {
+    <aside class="cash-alert driver-card combo-p-16" role="status">
+      <p class="cash-alert__title combo-fs-14 font-bold combo-mb-4">تنبيه العهدة</p>
+      <p class="cash-alert__text combo-fs-13 combo-m-0">{{ cashWarningMessage }}</p>
+    </aside>
+  }
+
   @if (!synced()) {
     <section class="home-screen__idle driver-card combo-p-24" aria-live="polite">
       <p class="home-screen__toggle-sub combo-fs-14 combo-m-0">جاري تحميل الرحلة</p>
@@ -13,6 +20,26 @@
   } @else {
   @switch (screen()) {
     @case ('IDLE') {
+      @if (isCashBlocked()) {
+        <section class="cash-block driver-card combo-p-24" role="alert">
+          <div class="cash-block__icon" aria-hidden="true">
+            <svg viewBox="0 0 80 80" fill="none">
+              <circle cx="40" cy="40" r="36" stroke="currentColor" stroke-width="3" />
+              <path
+                d="M40 24v22M40 54h.02"
+                stroke="currentColor"
+                stroke-width="4"
+                stroke-linecap="round"
+              />
+            </svg>
+          </div>
+          <h3 class="cash-block__title font-kufam combo-fs-22 font-bold combo-mb-12">
+            توقف استلام الطلبات
+          </h3>
+          <p class="cash-block__message combo-fs-15 combo-mb-24">{{ cashLimitMessage }}</p>
+          <combo-button size="lg" [fullWidth]="true" link="/wallet">توريد الكاش</combo-button>
+        </section>
+      } @else {
       <section class="home-screen__idle driver-card combo-p-24">
         <button
           class="home-screen__toggle"
@@ -32,8 +59,9 @@
           </span>
         </button>
       </section>
+      }
 
-      @if (isOnline() && offerCard(); as offer) {
+      @if (isOnline() && !isCashBlocked() && offerCard(); as offer) {
         <div class="incoming-offers" aria-label="عروض الطلبات الواردة">
           <section class="incoming-order driver-card combo-p-16 d-flex flex-column gap-2">
             <div class="incoming-order__body d-flex flex-column gap-2">
@@ -272,16 +300,16 @@
                 <div class="shop-checklist__action combo-mt-12">
                   @if (shop.isDone) {
                     <span class="shop-checklist__done-badge combo-fs-12 font-bold">✓ {{ shop.statusLabel }}</span>
-                  } @else if (shop.isCurrent) {
+                  } @else {
                     <combo-button
                       variant="outline"
                       size="sm"
                       [fullWidth]="true"
-                      [loading]="pendingAction() === 'complete'"
+                      [loading]="pendingAction() === 'complete' && pendingStopId() === shop.stopId"
                       [disabled]="pendingAction() !== null"
                       (clicked)="completeStop(shop.stopId)"
                     >
-                      تأكيد استلام المتجر
+                      تأكيد تجهيز الطلب
                     </combo-button>
                   }
                 </div>
@@ -360,8 +388,13 @@
           </h3>
 
           <div class="trip-card__map combo-mb-12">
-            <span class="font-bold">Map Placeholder</span>
-            <small>ETA <span class="font-numerals">{{ formatNumber(trip.etaMinutes) }}</span> دقيقة</small>
+            <combo-map
+              [destinationLat]="trip.customerLat"
+              [destinationLng]="trip.customerLng"
+              [originLat]="captainPoint()?.lat ?? null"
+              [originLng]="captainPoint()?.lng ?? null"
+              [fallbackEtaMinutes]="trip.etaMinutes"
+            />
           </div>
 
           <div class="order-summary combo-p-10 combo-mb-12" aria-label="ملخص الطلب">
@@ -483,28 +516,57 @@
 
     @case ('COLLECTION') {
       @if (tripView(); as trip) {
-        <section class="collection-card combo-p-24">
-          <p class="collection-card__label combo-fs-14 font-bold combo-mb-12">
+        <section class="trip-card collection-card driver-card combo-p-24">
+          <span class="trip-card__step combo-fs-12 font-bold combo-br-pill">
             {{ trip.collectsCash ? 'التحصيل النهائي' : 'تسليم الطلب' }}
-          </p>
+          </span>
+          <h3 class="trip-card__title font-kufam combo-fs-24 font-bold combo-mt-16 combo-mb-12">
+            {{ trip.collectsCash ? 'حصّل المبلغ ثم سلّم الطلب' : 'سلّم الطلب للعميل' }}
+          </h3>
+
+          <div class="collection-card__customer d-flex align-items-start gap-3 combo-mb-16">
+            <div class="flex-grow-1">
+              <p class="trip-card__name combo-fs-18 font-bold combo-mb-4">{{ trip.customerName }}</p>
+              <p class="trip-card__text combo-fs-13 combo-m-0">
+                طلب
+                <span class="font-numerals">#{{ trip.orderNumber }}</span>
+              </p>
+            </div>
+            @if (trip.customerPhone) {
+              <button
+                type="button"
+                class="nav-fab"
+                [attr.aria-label]="'اتصال بـ ' + trip.customerName"
+                (click)="callCustomer(trip.customerPhone)"
+              >
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M7.2 4.8h2.1l1.1 2.7-1.4 1.4a12.4 12.4 0 0 0 6.1 6.1l1.4-1.4 2.7 1.1v2.1c0 .7-.6 1.3-1.3 1.3A14.5 14.5 0 0 1 5.9 6.1c0-.7.6-1.3 1.3-1.3Z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            }
+          </div>
+
           @if (trip.collectsCash) {
-            <h3 class="collection-card__amount font-kufam font-black combo-mb-12">
-              برجاء تحصيل
-              <span class="font-numerals">{{ formatPiastres(trip.cashPiastres) }}</span>
-            </h3>
-            <p class="collection-card__text combo-fs-14 combo-mb-28">
-              سلّم الطلب للعميل بعد التحصيل النقدي وتأكيد الاستلام.
-            </p>
-          } @else {
-            <h3 class="collection-card__amount font-kufam font-black combo-mb-12">تم الوصول للعميل</h3>
-            <p class="collection-card__text combo-fs-14 combo-mb-28">
-              سلّم الطلب للعميل ثم أكّد التسليم.
-            </p>
+            <div class="collection-card__cash combo-p-20 combo-mb-24" role="status">
+              <p class="collection-card__cash-label combo-fs-13 font-medium combo-mb-8">
+                المبلغ المطلوب تحصيله
+              </p>
+              <p class="collection-card__cash-amount font-numerals combo-fs-36 font-bold combo-m-0">
+                {{ formatPiastres(trip.cashPiastres) }}
+              </p>
+              <p class="collection-card__cash-hint combo-fs-13 combo-mt-8 combo-mb-0">
+                نقدًا عند الاستلام
+              </p>
+            </div>
           }
 
           <div class="collection-card__actions d-flex flex-column gap-3">
             <combo-button
-              color="neutral"
               size="lg"
               [fullWidth]="true"
               [loading]="pendingAction() === 'complete'"
@@ -514,11 +576,10 @@
               {{ trip.collectsCash ? 'تم التحصيل والتسليم' : 'تم التسليم' }}
             </combo-button>
             <combo-button
-              variant="outline"
+              variant="ghost"
               color="danger"
               size="lg"
               [fullWidth]="true"
-              customTextColor="var(--Combo-text-text-error)"
               [disabled]="pendingAction() !== null"
               (clicked)="openIssueSheet()"
             >

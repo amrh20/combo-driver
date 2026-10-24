@@ -1,0 +1,26 @@
+<div class="combo-map" [style.height.px]="heightPx()">
+  <div
+    #mapHost
+    class="combo-map__canvas"
+    role="application"
+    aria-label="خريطة التوصيل إلى العميل"
+  ></div>
+
+  @if (etaMinutes(); as eta) {
+    <div class="combo-map__eta" aria-live="polite">
+      <span class="combo-map__eta-label combo-fs-11 font-medium">ETA</span>
+      <span class="combo-map__eta-value font-numerals combo-fs-14 font-bold">
+        {{ formatNumber(eta) }}
+      </span>
+      <span class="combo-map__eta-unit combo-fs-12">دقيقة</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="combo-map__status combo-fs-12">جاري تحميل الخريطة</p>
+  } @else if (loadFailed()) {
+    <p class="combo-map__status combo-map__status--error combo-fs-12">تعذر تحميل الخريطة</p>
+  } @else if (!hasDestination()) {
+    <p class="combo-map__status combo-fs-12">موقع التسليم غير متاح</p>
+  }
+</div>

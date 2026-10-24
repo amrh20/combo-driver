@@ -77,7 +77,10 @@ export interface CaptainOffer {
     vendorsCount: number;
     itemsCount: number;
     cashToCollect: Piastres;
+    /** Stored pay. 0 until the trip completes. */
     expectedEarnings: Piastres;
+    /** Preview of this trip's pay, in piastres. The offer card divides by 100. */
+    expectedCaptainProfit: Piastres;
     totalDistanceMeters: number;
     etaMinutes: number;
   };
