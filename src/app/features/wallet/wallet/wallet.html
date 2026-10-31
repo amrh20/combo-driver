@@ -37,50 +37,52 @@
     </article>
   }
 
-  <article class="wallet-card driver-card combo-p-24">
-    <div class="wallet-card__header d-flex align-items-start justify-content-between gap-3 combo-mb-12">
-      <div>
-        <span class="wallet-card__tag wallet-card__tag--earnings combo-fs-11 font-bold">مستحقاتي</span>
-        <h3 class="wallet-card__heading font-kufam combo-fs-18 font-bold combo-m-0">الصافي المستحق</h3>
+  @if (showEarnings()) {
+    <article class="wallet-card driver-card combo-p-24">
+      <div class="wallet-card__header d-flex align-items-start justify-content-between gap-3 combo-mb-12">
+        <div>
+          <span class="wallet-card__tag wallet-card__tag--earnings combo-fs-11 font-bold">مستحقاتي</span>
+          <h3 class="wallet-card__heading font-kufam combo-fs-18 font-bold combo-m-0">الصافي المستحق</h3>
+        </div>
+        <span class="wallet-card__badge combo-fs-11 font-bold">Net Payout</span>
       </div>
-      <span class="wallet-card__badge combo-fs-11 font-bold">Net Payout</span>
-    </div>
 
-    <ul class="wallet-card__breakdown combo-mb-16">
-      <li class="wallet-card__row">
-        <span class="combo-fs-14">{{ earningsLabel() }}</span>
-        <strong class="font-numerals combo-fs-14 font-semibold">{{ formatMoney(earnings()) }}</strong>
-      </li>
-      <li class="wallet-card__row">
-        <span class="combo-fs-14">بونص</span>
-        <strong class="wallet-card__row-value--positive font-numerals combo-fs-14 font-semibold">
-          +{{ formatMoney(bonus()) }}
+      <ul class="wallet-card__breakdown combo-mb-16">
+        <li class="wallet-card__row">
+          <span class="combo-fs-14">{{ earningsLabel() }}</span>
+          <strong class="font-numerals combo-fs-14 font-semibold">{{ formatMoney(earnings()) }}</strong>
+        </li>
+        <li class="wallet-card__row">
+          <span class="combo-fs-14">بونص</span>
+          <strong class="wallet-card__row-value--positive font-numerals combo-fs-14 font-semibold">
+            +{{ formatMoney(bonus()) }}
+          </strong>
+        </li>
+        <li class="wallet-card__row">
+          <span class="combo-fs-14">سلف خلال اليوم</span>
+          <strong class="wallet-card__row-value--negative font-numerals combo-fs-14 font-semibold">
+            −{{ formatMoney(advances()) }}
+          </strong>
+        </li>
+      </ul>
+
+      <div class="wallet-card__total combo-p-12 combo-mb-20">
+        <span class="combo-fs-13 font-bold">إجمالي الصافي</span>
+        <strong class="wallet-card__value font-numerals combo-fs-28 font-bold combo-m-0">
+          {{ formatMoney(netPayout()) }}
         </strong>
-      </li>
-      <li class="wallet-card__row">
-        <span class="combo-fs-14">سلف خلال اليوم</span>
-        <strong class="wallet-card__row-value--negative font-numerals combo-fs-14 font-semibold">
-          −{{ formatMoney(advances()) }}
-        </strong>
-      </li>
-    </ul>
+      </div>
 
-    <div class="wallet-card__total combo-p-12 combo-mb-20">
-      <span class="combo-fs-13 font-bold">إجمالي الصافي</span>
-      <strong class="wallet-card__value font-numerals combo-fs-28 font-bold combo-m-0">
-        {{ formatMoney(netPayout()) }}
-      </strong>
-    </div>
-
-    <!-- <combo-button
-      size="lg"
-      [fullWidth]="true"
-      [disabled]="loading() || settling() || netPayout() <= 0"
-      (clicked)="openPayoutConfirm()"
-    >
-      تم قبض المستحقات
-    </combo-button> -->
-  </article>
+      <!-- <combo-button
+        size="lg"
+        [fullWidth]="true"
+        [disabled]="loading() || settling() || netPayout() <= 0"
+        (clicked)="openPayoutConfirm()"
+      >
+        تم قبض المستحقات
+      </combo-button> -->
+    </article>
+  }
 
   <section class="wallet-settlements" aria-label="سجل التوريد">
     <div class="wallet-settlements__intro combo-mb-12">

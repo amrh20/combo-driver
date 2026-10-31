@@ -56,9 +56,12 @@ describe('AuthService', () => {
       status: 'ACTIVE',
       hubId: 'hub-1',
       mustChangePassword: false,
+      employmentType: 'FIXED',
     });
 
     expect(auth.currentUserRole()).toBe('COLLECTOR');
+    expect(auth.captain()?.employmentType).toBe('FIXED');
+    expect(auth.showPerTripEarnings()).toBe(false);
     expect(auth.driver().name).toBe('أحمد');
   });
 

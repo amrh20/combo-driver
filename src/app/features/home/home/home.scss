@@ -550,6 +550,36 @@
   }
 }
 
+.override-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__label {
+    color: var(--Combo-text-text-display);
+  }
+
+  &__file,
+  &__number {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--Combo-border-border-neutral-primary);
+    border-radius: 16px;
+    background: var(--Combo-bg-background-white);
+    color: var(--Combo-text-text-display);
+  }
+
+  &__number:focus {
+    outline: none;
+    border-color: var(--Combo-border-border-primary);
+  }
+
+  &__name {
+    color: var(--Combo-text-text-secondary-paragraph);
+  }
+}
+
 .reason-field {
   display: block;
   width: 100%;

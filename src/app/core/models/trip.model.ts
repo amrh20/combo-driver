@@ -115,6 +115,8 @@ export interface CaptainOrderHistoryItem {
   paymentMethod: OrderPaymentMethod;
   captainProfit: number;
   customerTotal: number;
+  /** Integer piastres of company cash collected on delivery, when applicable. */
+  cashCollected?: number;
 }
 
 /** `GET /v1/captain/shifts` row. Closed shifts only; `durationMinutes` is authoritative. */
@@ -139,6 +141,8 @@ export interface CompletedDriverOrder {
   captainProfit: number;
   /** Integer piastres. What the customer was charged. */
   customerTotal: number;
+  /** Integer piastres of company cash collected on this trip. */
+  cashCollected: number;
 }
 
 export interface DriverProfile {

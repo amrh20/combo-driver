@@ -31,11 +31,14 @@ import { AuthService } from './auth';
 import { AvailabilityService } from './availability.service';
 import { CaptainLocationService } from './captain-location.service';
 import { DriverWalletService } from './driver-wallet.service';
+import { AudioService } from './audio.service';
 import { RealtimeService } from './realtime.service';
 import { ToastService } from './toast.service';
 
 const OFFERS_URL = `${API_BASE_URL}/v1/captain/offers/current`;
 const TASKS_URL = `${API_BASE_URL}/v1/captain/tasks/current`;
+/** Fallback while the socket is down. The captain is online and not on a trip. */
+const OFFER_POLL_MS = 10_000;
 
 @Injectable({
   providedIn: 'root',
@@ -48,6 +51,7 @@ export class TripService {
   private readonly realtime = inject(RealtimeService);
   private readonly toast = inject(ToastService);
   private readonly wallet = inject(DriverWalletService);
+  private readonly audio = inject(AudioService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly offerState = signal<CaptainOffer | null>(null);
@@ -55,6 +59,7 @@ export class TripService {
 
   private offerEpoch = 0;
   private taskEpoch = 0;
+  private offerPoll: ReturnType<typeof setInterval> | null = null;
   /** Offer responses that arrive before the first task read are applied after it. */
   private heldOffer: CaptainOffer | null | undefined;
   private taskKnown = false;
@@ -100,6 +105,7 @@ export class TripService {
     }
 
     this.destroyRef.onDestroy(() => {
+      this.stopOfferPoll();
       this.realtime.stop();
       if (typeof window !== 'undefined') {
         window.removeEventListener('online', this.onOnline);
@@ -225,6 +231,43 @@ export class TripService {
       });
   }
 
+  /**
+   * Replaces one shop's total with the invoice amount. `newTotalPiastres` is what the customer is charged
+   * for that shop's goods. The task is refetched after the server accepts it.
+   */
+  overrideShopTotal(
+    taskId: string,
+    shopId: string,
+    newTotalPiastres: number,
+    invoice: File,
+    onSuccess: () => void,
+  ): void {
+    if (this.pendingAction() || newTotalPiastres <= 0 || !shopId) {
+      return;
+    }
+
+    const body = new FormData();
+    body.append('newTotal', String(newTotalPiastres));
+    body.append('invoice', invoice);
+    this.pendingAction.set('override');
+
+    this.http
+      .post<CaptainTask>(
+        `${API_BASE_URL}/v1/captain/tasks/${taskId}/shops/${shopId}/override-total`,
+        body,
+        { headers: idempotencyHeaders() },
+      )
+      .pipe(finalize(() => this.release('override')))
+      .subscribe({
+        next: () => {
+          this.toast.show('تم تحديث إجمالي المتجر');
+          this.refreshTask();
+          onSuccess();
+        },
+        error: (error: unknown) => this.handleActionError(error),
+      });
+  }
+
   arriveAtCustomer(): void {
     const task = this.taskState();
     const stopId = task?.currentStopId;
@@ -319,13 +362,39 @@ export class TripService {
     this.refreshTask();
 
     if (!online) {
+      this.stopOfferPoll();
       this.offerState.set(null);
       return;
     }
 
+    this.startOfferPoll();
     if (!this.taskState()) {
       this.refreshOffer();
     }
+  }
+
+  /** Picks up an offer ops sent while this screen was already open and the socket missed it. */
+  private startOfferPoll(): void {
+    if (this.offerPoll !== null || typeof window === 'undefined') {
+      return;
+    }
+
+    this.offerPoll = setInterval(() => {
+      if (!this.auth.isAuthenticated() || !this.availability.isOnline() || this.taskState()) {
+        return;
+      }
+
+      this.refreshOffer();
+    }, OFFER_POLL_MS);
+  }
+
+  private stopOfferPoll(): void {
+    if (this.offerPoll === null) {
+      return;
+    }
+
+    clearInterval(this.offerPoll);
+    this.offerPoll = null;
   }
 
   private refetchAfterReconnect(): void {
@@ -347,11 +416,13 @@ export class TripService {
     switch (message.event) {
       case 'offer.created':
         this.refreshOffer();
-        buzzIncomingOffer();
         break;
       case 'offer.expired':
       case 'offer.cancelled':
         this.offerState.set(null);
+        break;
+      case 'order.modified':
+        this.refreshTask();
         break;
       case 'task.assigned':
       case 'task.released':
@@ -439,6 +510,11 @@ export class TripService {
       return;
     }
 
+    const previousId = this.offerState()?.id;
+    if (previousId !== offer.id) {
+      this.notifyIncomingOrder();
+    }
+
     this.offerState.set(offer);
   }
 
@@ -461,9 +537,19 @@ export class TripService {
       return;
     }
 
+    const previousId = this.taskState()?.id;
     this.taskState.set(task);
     this.offerState.set(null);
     this.flushHeldOffer();
+
+    if (task.id !== previousId) {
+      this.notifyIncomingOrder();
+    }
+  }
+
+  private notifyIncomingOrder(): void {
+    this.audio.playNewOrderSound();
+    buzzIncomingOffer();
   }
 
   private flushHeldOffer(): void {

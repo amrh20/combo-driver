@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 
 import { TRANSACTION_TYPE_LABELS, LedgerTransaction, TransactionType } from '../../../core/models';
+import { AuthService } from '../../../core/services/auth';
 import { DriverWalletService } from '../../../core/services/driver-wallet.service';
 import { ComboButton } from '../../../shared/components';
 import { formatMoney } from '../../../shared/utils/format';
@@ -17,27 +18,16 @@ type AmountTone = 'positive' | 'negative' | 'neutral';
 })
 export class FinancialLedger {
   private readonly wallet = inject(DriverWalletService);
+  private readonly auth = inject(AuthService);
+
+  readonly showEarnings = this.auth.showPerTripEarnings;
 
   readonly periodFilter = signal<PeriodFilter>('today');
   readonly selectedDate = signal('');
 
   readonly filteredTransactions = computed(() => {
-    const customDate = this.selectedDate();
-    const transactions = this.wallet.ledgerTransactions();
-
-    if (customDate) {
-      return this.sortTransactions(
-        transactions.filter((txn) => this.toDateKey(txn.occurredAt) === customDate)
-      );
-    }
-
-    const range = this.getPeriodRange(this.periodFilter());
-    return this.sortTransactions(
-      transactions.filter((txn) => {
-        const occurredAt = new Date(txn.occurredAt);
-        return occurredAt >= range.start && occurredAt <= range.end;
-      })
-    );
+    const scoped = this.periodScopedTransactions();
+    return this.showEarnings() ? scoped : scoped.filter((txn) => isCompanyCashLedgerRow(txn));
   });
 
   readonly periodSummary = computed(() => {
@@ -58,6 +48,13 @@ export class FinancialLedger {
       { credits: 0, debits: 0 }
     );
   });
+
+  readonly periodCashCollected = computed(() =>
+    this.filteredTransactions().reduce(
+      (sum, txn) => (txn.type === 'CASH_COLLECTION' ? sum + txn.amount : sum),
+      0,
+    ),
+  );
 
   selectPeriod(period: PeriodFilter): void {
     this.periodFilter.set(period);
@@ -159,4 +156,35 @@ export class FinancialLedger {
       (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
     );
   }
+
+  private periodScopedTransactions(): LedgerTransaction[] {
+    const customDate = this.selectedDate();
+    const transactions = this.wallet.ledgerTransactions();
+
+    if (customDate) {
+      return this.sortTransactions(
+        transactions.filter((txn) => this.toDateKey(txn.occurredAt) === customDate),
+      );
+    }
+
+    const range = this.getPeriodRange(this.periodFilter());
+    return this.sortTransactions(
+      transactions.filter((txn) => {
+        const occurredAt = new Date(txn.occurredAt);
+        return occurredAt >= range.start && occurredAt <= range.end;
+      }),
+    );
+  }
+}
+
+function isCompanyCashLedgerRow(txn: LedgerTransaction): boolean {
+  if (txn.type === 'CASH_COLLECTION') {
+    return true;
+  }
+
+  if (txn.type === 'SETTLEMENT') {
+    return !txn.settles || txn.settles === 'CASH';
+  }
+
+  return false;
 }

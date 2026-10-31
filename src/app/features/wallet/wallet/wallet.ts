@@ -28,6 +28,7 @@ export class Wallet implements OnInit {
   readonly showCashRemittance = computed(
     () => this.currentUserRole() === 'DELIVERY' || this.currentUserRole() === 'BOTH'
   );
+  readonly showEarnings = this.auth.showPerTripEarnings;
   readonly earningsLabel = computed(() =>
     this.currentUserRole() === 'COLLECTOR' ? 'مكافأة التجميع' : 'أرباح التوصيل'
   );
@@ -83,7 +84,7 @@ export class Wallet implements OnInit {
   }
 
   cashActionLabel(): string {
-    return this.hasPendingCashSettlement() ? 'في انتظار تأكيد العمليات' : 'تم توريد الكاش';
+    return this.hasPendingCashSettlement() ? 'في انتظار تأكيد العمليات' : ' توريد الكاش ';
   }
 
   settlementStatusLabel(status: CashSettlementStatus): string {

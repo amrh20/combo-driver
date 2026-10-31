@@ -43,6 +43,9 @@ export interface StopShop {
   notes: string | null;
   itemsCount: number;
   items: StopShopItem[];
+  /** Piastres when the captain replaced this shop's line sum. `subtotal` already uses it. */
+  captainOverrideTotal?: Piastres | null;
+  invoiceUrl?: string | null;
   subtotal: Piastres;
 }
 
@@ -139,4 +142,4 @@ export interface GeofencePrompt {
 
 export type TripScreen = 'IDLE' | 'VENDOR' | 'HUB' | 'CUSTOMER' | 'COLLECTION' | 'ISSUE';
 
-export type TripAction = 'accept' | 'decline' | 'arrive' | 'complete' | 'issue';
+export type TripAction = 'accept' | 'decline' | 'arrive' | 'complete' | 'issue' | 'override';

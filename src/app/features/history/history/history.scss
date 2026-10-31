@@ -155,6 +155,11 @@
     background: var(--Combo-bg-background-primary-50);
     color: var(--Combo-text-text-primary);
     padding: 12px;
+
+    &--cash {
+      background: var(--Combo-bg-background-neutral-50);
+      color: var(--Combo-text-text-display);
+    }
   }
 
   &--cancelled {

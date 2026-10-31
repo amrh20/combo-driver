@@ -14,6 +14,11 @@ export function piastresToEgp(piastres: number): number {
   return Number.isFinite(piastres) ? piastres / 100 : 0;
 }
 
+/** Converts an EGP amount into integer piastres (1 EGP = 100). */
+export function egpToPiastres(egp: number): number {
+  return Number.isFinite(egp) ? Math.round(egp * 100) : 0;
+}
+
 /** Formats EGP amounts with Latin digits. Whole pounds stay integers; piastre remainders keep two decimals. */
 export function formatMoney(value: number): string {
   const formatted = new Intl.NumberFormat('en-EG', {

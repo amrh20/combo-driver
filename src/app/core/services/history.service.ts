@@ -106,6 +106,10 @@ function toHistoryOrder(item: CaptainOrderHistoryItem): CompletedDriverOrder {
     /** Piastres. The screen divides by 100. Prefer the flat field, then `order.captainProfit`. */
     captainProfit: readPiastres(raw.captainProfit ?? raw.order?.captainProfit),
     customerTotal: readPiastres(raw.customerTotal ?? raw.order?.customerTotal),
+    cashCollected: readPiastres(
+      (raw as { cashCollected?: unknown }).cashCollected ??
+        (raw.order as { cashCollected?: unknown } | undefined)?.cashCollected,
+    ),
   };
 }
 

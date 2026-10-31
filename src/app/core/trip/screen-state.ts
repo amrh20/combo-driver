@@ -33,6 +33,7 @@ export interface ShopLineView {
 
 export interface ShopStopView {
   stopId: string;
+  vendorId: string;
   shopName: string;
   phone: string | null;
   itemsCount: number;
@@ -231,6 +232,7 @@ function toShopView(stop: TaskStop): ShopStopView {
 
   return {
     stopId: stop.id,
+    vendorId: shop?.vendorId ?? '',
     shopName: shop?.name ?? 'متجر',
     phone: shop?.phone ?? null,
     itemsCount: shop?.itemsCount ?? items.length,

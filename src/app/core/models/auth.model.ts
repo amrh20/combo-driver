@@ -1,5 +1,7 @@
 export type DriverRole = 'COLLECTOR' | 'DELIVERY' | 'BOTH';
 
+export type CaptainEmploymentType = 'FIXED' | 'FREELANCER';
+
 export type CaptainVehicleType = 'MOTORCYCLE' | 'CAR' | 'BICYCLE' | 'NONE';
 
 export interface CaptainLoginResponse {
@@ -19,6 +21,8 @@ export interface CaptainProfile {
   status: string;
   hubId: string | null;
   mustChangePassword: boolean;
+  /** Monthly salary is paid outside the app for `FIXED` captains. */
+  employmentType?: CaptainEmploymentType;
 }
 
 export interface ApiErrorBody {

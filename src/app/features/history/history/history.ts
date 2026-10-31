@@ -23,6 +23,7 @@ export class History {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly currentUserRole = this.auth.currentUserRole;
+  readonly showEarnings = this.auth.showPerTripEarnings;
   readonly earningsBadgeLabel = computed(() =>
     this.currentUserRole() === 'COLLECTOR' ? 'مكافأة التجميع' : 'ربح الكابتن',
   );
@@ -46,6 +47,10 @@ export class History {
     return {
       orderCount: orders.length,
       totalProfit: orders.reduce((sum, order) => sum + this.orderProfitEgp(order), 0),
+      totalCashCollected: orders.reduce(
+        (sum, order) => sum + this.orderCashCollectedEgp(order),
+        0,
+      ),
     };
   });
 
@@ -79,6 +84,23 @@ export class History {
   /** `captainProfit` is integer piastres. Missing values display as 0 EGP. */
   orderProfitEgp(order: CompletedDriverOrder): number {
     return (order.captainProfit || 0) / 100;
+  }
+
+  /** Company cash collected on the trip, in EGP. */
+  orderCashCollectedEgp(order: CompletedDriverOrder): number {
+    return this.orderCashCollectedPiastres(order) / 100;
+  }
+
+  orderCashCollectedPiastres(order: CompletedDriverOrder): number {
+    if (order.cashCollected > 0) {
+      return order.cashCollected;
+    }
+
+    if (order.status === 'COMPLETED' && order.paymentMethod === 'COD') {
+      return order.customerTotal || 0;
+    }
+
+    return 0;
   }
 
   /** `customerTotal` is integer piastres, shown as EGP. */

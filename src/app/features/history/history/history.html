@@ -66,9 +66,15 @@
         جاري تحميل السجل...
       } @else {
         عدد الطلبات: <span class="font-numerals">{{ filteredSummary().orderCount }}</span>
-        <span class="history-filters__summary-sep" aria-hidden="true">|</span>
-        إجمالي الأرباح:
-        <span class="font-numerals">{{ formatProfit(filteredSummary().totalProfit) }}</span>
+        @if (showEarnings()) {
+          <span class="history-filters__summary-sep" aria-hidden="true">|</span>
+          إجمالي الأرباح:
+          <span class="font-numerals">{{ formatProfit(filteredSummary().totalProfit) }}</span>
+        } @else {
+          <span class="history-filters__summary-sep" aria-hidden="true">|</span>
+          إجمالي العهدة المحصّلة:
+          <span class="font-numerals">{{ formatProfit(filteredSummary().totalCashCollected) }}</span>
+        }
       }
     </p>
   </div>
@@ -100,28 +106,43 @@
               </span>
             </div>
             <p class="history-item__date combo-fs-13 combo-m-0">{{ order.date }}</p>
-            <div class="history-item__meta combo-fs-12">
-              <p class="combo-m-0">العميل: {{ order.customerName || '—' }}</p>
-              <p class="combo-m-0">
-                عدد المتاجر: <span class="font-numerals">{{ order.shopsCount }}</span>
-              </p>
-              <p class="combo-m-0">
-                طريقة الدفع: {{ paymentLabel(order.paymentMethod) }} -
-                <span class="font-numerals">{{ formatCustomerTotal(order) }}</span>
-              </p>
-            </div>
-          </div>
-
-          <div class="history-item__profit">
-            <span class="combo-fs-11 font-bold">{{ earningsBadgeLabel() }}</span>
-            @if (isCancelled(order)) {
-              <strong class="font-numerals combo-fs-18 font-semibold">—</strong>
-            } @else {
-              <strong class="font-numerals combo-fs-18 font-semibold">{{
-                formatProfit(orderProfitEgp(order))
-              }}</strong>
+            @if (showEarnings()) {
+              <div class="history-item__meta combo-fs-12">
+                <p class="combo-m-0">العميل: {{ order.customerName || '—' }}</p>
+                <p class="combo-m-0">
+                  عدد المتاجر: <span class="font-numerals">{{ order.shopsCount }}</span>
+                </p>
+                <p class="combo-m-0">
+                  طريقة الدفع: {{ paymentLabel(order.paymentMethod) }} -
+                  <span class="font-numerals">{{ formatCustomerTotal(order) }}</span>
+                </p>
+              </div>
             }
           </div>
+
+          @if (showEarnings()) {
+            <div class="history-item__profit">
+              <span class="combo-fs-11 font-bold">{{ earningsBadgeLabel() }}</span>
+              @if (isCancelled(order)) {
+                <strong class="font-numerals combo-fs-18 font-semibold">—</strong>
+              } @else {
+                <strong class="font-numerals combo-fs-18 font-semibold">{{
+                  formatProfit(orderProfitEgp(order))
+                }}</strong>
+              }
+            </div>
+          } @else {
+            <div class="history-item__profit history-item__profit--cash">
+              <span class="combo-fs-11 font-bold">العهدة المحصّلة</span>
+              @if (isCancelled(order) || orderCashCollectedEgp(order) <= 0) {
+                <strong class="font-numerals combo-fs-18 font-semibold">—</strong>
+              } @else {
+                <strong class="font-numerals combo-fs-18 font-semibold">{{
+                  formatProfit(orderCashCollectedEgp(order))
+                }}</strong>
+              }
+            </div>
+          }
         </article>
       }
     }

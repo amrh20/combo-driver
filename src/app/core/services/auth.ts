@@ -46,6 +46,8 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.accessToken() !== null);
   readonly currentUserRole = this.userRole.asReadonly();
   readonly captain = this.profile.asReadonly();
+  /** Per-trip payout UI is for freelancers. Fixed captains are salaried outside the app. */
+  readonly showPerTripEarnings = computed(() => this.profile()?.employmentType === 'FREELANCER');
   readonly driver = computed<DriverProfile>(() => {
     const captain = this.profile();
 

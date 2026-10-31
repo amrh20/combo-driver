@@ -109,6 +109,47 @@ describe('TripService', () => {
     expect(trip.offerCard()?.id).toBe('CMB-1');
   });
 
+  it('polls the current offer while online and idle', () => {
+    vi.useFakeTimers();
+    goOnline(null);
+
+    vi.advanceTimersByTime(10_000);
+    http.expectOne(offersUrl).flush(liveOffer());
+    expect(trip.offer()?.id).toBe('offer-1');
+
+    vi.useRealTimers();
+  });
+
+  it('refetches the active task when order.modified arrives, without a toast', () => {
+    goOnline(null);
+    messages$.next({ event: 'order.modified', id: 'evt-mod', data: { orderId: 'order-1' } });
+
+    http.expectOne(tasksUrl).flush(null);
+    expect(toast.current()).toBeNull();
+  });
+
+  it('posts the shop total override as multipart and refetches the task', () => {
+    goOnline(null);
+    const file = new File([new Uint8Array([1, 2, 3])], 'invoice.png', { type: 'image/png' });
+    let closed = false;
+    trip.overrideShopTotal('task-1', 'vendor-1', 15_000, file, () => {
+      closed = true;
+    });
+
+    const req = http.expectOne(
+      `${API_BASE_URL}/v1/captain/tasks/task-1/shops/vendor-1/override-total`,
+    );
+    expect(req.request.method).toBe('POST');
+    const body = req.request.body as FormData;
+    expect(body.get('newTotal')).toBe('15000');
+    expect(body.get('invoice')).toBe(file);
+    expect(req.request.headers.get('Idempotency-Key')).toBeTruthy();
+    req.flush({});
+    http.expectOne(tasksUrl).flush(null);
+    expect(closed).toBe(true);
+    expect(toast.current()).toBe('تم تحديث إجمالي المتجر');
+  });
+
   it('fetches the current offer when offer.created arrives and refetches after reconnect', () => {
     goOnline(null);
     messages$.next({ event: 'offer.created', id: 'evt-1', data: {} });

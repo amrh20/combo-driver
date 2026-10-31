@@ -10,8 +10,9 @@ import {
 import { CaptainLocationService } from '../../../core/services/captain-location.service';
 import { DriverWalletService } from '../../../core/services/driver-wallet.service';
 import { TripService } from '../../../core/services/trip.service';
+import { ShopStopView } from '../../../core/trip/screen-state';
 import { ComboBottomSheet, ComboButton, ComboMap } from '../../../shared/components';
-import { formatNumber, formatPiastres } from '../../../shared/utils/format';
+import { egpToPiastres, formatNumber, formatPiastres } from '../../../shared/utils/format';
 import { openExternalNavigation } from '../../../shared/utils/navigation';
 
 @Component({
@@ -89,6 +90,13 @@ export class Home implements OnInit {
   ngOnInit(): void {
     this.wallet.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
+
+  readonly overrideSheetOpen = signal(false);
+  readonly overrideShopName = signal('');
+  readonly overrideTotalEgp = signal('');
+  readonly overrideFileName = signal('');
+  private overrideVendorId = '';
+  private overrideFile: File | null = null;
 
   readonly issueSheetOpen = signal(false);
   readonly selectedIssue = signal<DeliveryIssueType | null>(null);
@@ -183,6 +191,66 @@ export class Home implements OnInit {
 
   completeStop(stopId: string): void {
     this.trip.completeCurrentStop(stopId);
+  }
+
+  openOverrideSheet(shop: ShopStopView): void {
+    if (this.pendingAction() || shop.isDone || !shop.vendorId) {
+      return;
+    }
+
+    this.overrideVendorId = shop.vendorId;
+    this.overrideShopName.set(shop.shopName);
+    this.overrideTotalEgp.set('');
+    this.overrideFileName.set('');
+    this.overrideFile = null;
+    this.overrideSheetOpen.set(true);
+  }
+
+  closeOverrideSheet(): void {
+    if (this.pendingAction() === 'override') {
+      return;
+    }
+
+    this.overrideSheetOpen.set(false);
+    this.overrideVendorId = '';
+    this.overrideFile = null;
+    this.overrideFileName.set('');
+    this.overrideTotalEgp.set('');
+  }
+
+  onOverrideTotal(value: string): void {
+    this.overrideTotalEgp.set(value);
+  }
+
+  onOverrideFile(input: HTMLInputElement): void {
+    const file = input.files?.[0] ?? null;
+    this.overrideFile = file;
+    this.overrideFileName.set(file?.name ?? '');
+  }
+
+  canSubmitOverride(): boolean {
+    return (
+      this.pendingAction() === null &&
+      this.overrideFile !== null &&
+      egpToPiastres(Number(this.overrideTotalEgp())) > 0
+    );
+  }
+
+  submitOverride(): void {
+    const trip = this.tripView();
+    const file = this.overrideFile;
+    const piastres = egpToPiastres(Number(this.overrideTotalEgp()));
+    if (!trip || !file || !this.overrideVendorId || piastres <= 0 || this.pendingAction()) {
+      return;
+    }
+
+    this.trip.overrideShopTotal(trip.taskId, this.overrideVendorId, piastres, file, () => {
+      this.overrideSheetOpen.set(false);
+      this.overrideVendorId = '';
+      this.overrideFile = null;
+      this.overrideFileName.set('');
+      this.overrideTotalEgp.set('');
+    });
   }
 
   arriveAtCustomer(): void {

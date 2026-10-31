@@ -6,7 +6,7 @@
 
     <p class="ledger-screen__eyebrow combo-fs-12 font-bold combo-mt-16 combo-mb-8">كشف الحساب</p>
     <h2 class="ledger-screen__title font-kufam combo-fs-24 font-bold combo-m-0">
-      الحركات المالية
+      {{ showEarnings() ? 'الحركات المالية' : 'حركات العهدة' }}
     </h2>
   </header>
 
@@ -56,22 +56,33 @@
     </div>
   </section>
 
-  <section class="ledger-summary driver-card combo-p-16" aria-label="ملخص الفترة">
-    <div class="ledger-summary__grid">
+  @if (showEarnings()) {
+    <section class="ledger-summary driver-card combo-p-16" aria-label="ملخص الفترة">
+      <div class="ledger-summary__grid">
+        <div class="ledger-summary__item">
+          <span class="combo-fs-12">إضافات</span>
+          <strong class="ledger-summary__value ledger-summary__value--positive font-numerals combo-fs-16 font-semibold">
+            +{{ formatMoney(periodSummary().credits) }}
+          </strong>
+        </div>
+        <div class="ledger-summary__item">
+          <span class="combo-fs-12">خصومات</span>
+          <strong class="ledger-summary__value ledger-summary__value--negative font-numerals combo-fs-16 font-semibold">
+            −{{ formatMoney(periodSummary().debits) }}
+          </strong>
+        </div>
+      </div>
+    </section>
+  } @else {
+    <section class="ledger-summary driver-card combo-p-16" aria-label="ملخص العهدة">
       <div class="ledger-summary__item">
-        <span class="combo-fs-12">إضافات</span>
-        <strong class="ledger-summary__value ledger-summary__value--positive font-numerals combo-fs-16 font-semibold">
-          +{{ formatMoney(periodSummary().credits) }}
+        <span class="combo-fs-12">إجمالي العهدة المحصّلة</span>
+        <strong class="ledger-summary__value font-numerals combo-fs-16 font-semibold">
+          {{ formatMoney(periodCashCollected()) }}
         </strong>
       </div>
-      <div class="ledger-summary__item">
-        <span class="combo-fs-12">خصومات</span>
-        <strong class="ledger-summary__value ledger-summary__value--negative font-numerals combo-fs-16 font-semibold">
-          −{{ formatMoney(periodSummary().debits) }}
-        </strong>
-      </div>
-    </div>
-  </section>
+    </section>
+  }
 
   <div class="ledger-timeline d-flex flex-column gap-3">
     @if (filteredTransactions().length === 0) {
