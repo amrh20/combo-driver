@@ -12,7 +12,7 @@ import { DriverWalletService } from '../../../core/services/driver-wallet.servic
 import { TripService } from '../../../core/services/trip.service';
 import { ShopStopView } from '../../../core/trip/screen-state';
 import { ComboBottomSheet, ComboButton, ComboMap } from '../../../shared/components';
-import { egpToPiastres, formatNumber, formatPiastres } from '../../../shared/utils/format';
+import { formatNumber, formatPiastres } from '../../../shared/utils/format';
 import { openExternalNavigation } from '../../../shared/utils/navigation';
 
 @Component({
@@ -91,12 +91,11 @@ export class Home implements OnInit {
     this.wallet.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
-  readonly overrideSheetOpen = signal(false);
-  readonly overrideShopName = signal('');
-  readonly overrideTotalEgp = signal('');
-  readonly overrideFileName = signal('');
-  private overrideVendorId = '';
-  private overrideFile: File | null = null;
+  readonly confirmSheetOpen = signal(false);
+  readonly confirmShopName = signal('');
+  readonly confirmVendorId = signal('');
+  readonly confirmFileName = signal('');
+  private confirmFile: File | null = null;
 
   readonly issueSheetOpen = signal(false);
   readonly selectedIssue = signal<DeliveryIssueType | null>(null);
@@ -193,63 +192,54 @@ export class Home implements OnInit {
     this.trip.completeCurrentStop(stopId);
   }
 
-  openOverrideSheet(shop: ShopStopView): void {
+  openConfirmSheet(shop: ShopStopView): void {
     if (this.pendingAction() || shop.isDone || !shop.vendorId) {
       return;
     }
 
-    this.overrideVendorId = shop.vendorId;
-    this.overrideShopName.set(shop.shopName);
-    this.overrideTotalEgp.set('');
-    this.overrideFileName.set('');
-    this.overrideFile = null;
-    this.overrideSheetOpen.set(true);
+    this.confirmVendorId.set(shop.vendorId);
+    this.confirmShopName.set(shop.shopName);
+    this.confirmFileName.set('');
+    this.confirmFile = null;
+    this.confirmSheetOpen.set(true);
   }
 
-  closeOverrideSheet(): void {
-    if (this.pendingAction() === 'override') {
+  closeConfirmSheet(): void {
+    if (this.pendingAction() === 'confirm') {
       return;
     }
 
-    this.overrideSheetOpen.set(false);
-    this.overrideVendorId = '';
-    this.overrideFile = null;
-    this.overrideFileName.set('');
-    this.overrideTotalEgp.set('');
+    this.confirmSheetOpen.set(false);
+    this.confirmVendorId.set('');
+    this.confirmShopName.set('');
+    this.confirmFile = null;
+    this.confirmFileName.set('');
   }
 
-  onOverrideTotal(value: string): void {
-    this.overrideTotalEgp.set(value);
-  }
-
-  onOverrideFile(input: HTMLInputElement): void {
+  onConfirmFile(input: HTMLInputElement): void {
     const file = input.files?.[0] ?? null;
-    this.overrideFile = file;
-    this.overrideFileName.set(file?.name ?? '');
+    this.confirmFile = file;
+    this.confirmFileName.set(file?.name ?? '');
   }
 
-  canSubmitOverride(): boolean {
-    return (
-      this.pendingAction() === null &&
-      this.overrideFile !== null &&
-      egpToPiastres(Number(this.overrideTotalEgp())) > 0
-    );
+  canSubmitConfirm(): boolean {
+    return this.pendingAction() === null && this.confirmFile !== null;
   }
 
-  submitOverride(): void {
+  submitConfirm(): void {
     const trip = this.tripView();
-    const file = this.overrideFile;
-    const piastres = egpToPiastres(Number(this.overrideTotalEgp()));
-    if (!trip || !file || !this.overrideVendorId || piastres <= 0 || this.pendingAction()) {
+    const file = this.confirmFile;
+    const shopId = this.confirmVendorId();
+    if (!trip || !file || !shopId || this.pendingAction()) {
       return;
     }
 
-    this.trip.overrideShopTotal(trip.taskId, this.overrideVendorId, piastres, file, () => {
-      this.overrideSheetOpen.set(false);
-      this.overrideVendorId = '';
-      this.overrideFile = null;
-      this.overrideFileName.set('');
-      this.overrideTotalEgp.set('');
+    this.trip.confirmShop(trip.taskId, shopId, file, () => {
+      this.confirmSheetOpen.set(false);
+      this.confirmVendorId.set('');
+      this.confirmShopName.set('');
+      this.confirmFile = null;
+      this.confirmFileName.set('');
     });
   }
 

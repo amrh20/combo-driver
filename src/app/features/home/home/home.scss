@@ -550,7 +550,7 @@
   }
 }
 
-.override-field {
+.invoice-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -559,8 +559,7 @@
     color: var(--Combo-text-text-display);
   }
 
-  &__file,
-  &__number {
+  &__file {
     display: block;
     width: 100%;
     padding: 12px 14px;
@@ -568,11 +567,6 @@
     border-radius: 16px;
     background: var(--Combo-bg-background-white);
     color: var(--Combo-text-text-display);
-  }
-
-  &__number:focus {
-    outline: none;
-    border-color: var(--Combo-border-border-primary);
   }
 
   &__name {

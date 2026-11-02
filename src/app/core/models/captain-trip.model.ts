@@ -142,4 +142,4 @@ export interface GeofencePrompt {
 
 export type TripScreen = 'IDLE' | 'VENDOR' | 'HUB' | 'CUSTOMER' | 'COLLECTION' | 'ISSUE';
 
-export type TripAction = 'accept' | 'decline' | 'arrive' | 'complete' | 'issue' | 'override';
+export type TripAction = 'accept' | 'decline' | 'arrive' | 'complete' | 'issue' | 'confirm';

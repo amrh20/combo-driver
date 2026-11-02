@@ -126,6 +126,7 @@ async function createHome(options: {
           acceptOffer: vi.fn(),
           declineOffer: vi.fn(),
           completeCurrentStop: vi.fn(),
+          confirmShop: vi.fn(),
           arriveAtCustomer: vi.fn(),
           reportIssue: vi.fn(),
           submitFarReason: vi.fn(),

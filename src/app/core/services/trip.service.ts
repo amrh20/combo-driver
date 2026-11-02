@@ -232,35 +232,28 @@ export class TripService {
   }
 
   /**
-   * Replaces one shop's total with the invoice amount. `newTotalPiastres` is what the customer is charged
-   * for that shop's goods. The task is refetched after the server accepts it.
+   * Confirms a shop pickup with a required physical invoice photo.
+   * Multipart body: `invoice` file. Refetches the active task on success.
    */
-  overrideShopTotal(
-    taskId: string,
-    shopId: string,
-    newTotalPiastres: number,
-    invoice: File,
-    onSuccess: () => void,
-  ): void {
-    if (this.pendingAction() || newTotalPiastres <= 0 || !shopId) {
+  confirmShop(taskId: string, shopId: string, invoice: File, onSuccess: () => void): void {
+    if (this.pendingAction() || !shopId) {
       return;
     }
 
     const body = new FormData();
-    body.append('newTotal', String(newTotalPiastres));
     body.append('invoice', invoice);
-    this.pendingAction.set('override');
+    this.pendingAction.set('confirm');
 
     this.http
       .post<CaptainTask>(
-        `${API_BASE_URL}/v1/captain/tasks/${taskId}/shops/${shopId}/override-total`,
+        `${API_BASE_URL}/v1/captain/tasks/${taskId}/shops/${shopId}/confirm`,
         body,
         { headers: idempotencyHeaders() },
       )
-      .pipe(finalize(() => this.release('override')))
+      .pipe(finalize(() => this.release('confirm')))
       .subscribe({
         next: () => {
-          this.toast.show('تم تحديث إجمالي المتجر');
+          this.toast.show('تم تأكيد تجهيز الطلب');
           this.refreshTask();
           onSuccess();
         },
