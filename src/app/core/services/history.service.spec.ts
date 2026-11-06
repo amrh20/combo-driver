@@ -2,12 +2,12 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { CaptainOrderHistoryItem } from '../models';
 import { HistoryService } from './history.service';
 import { ToastService } from './toast.service';
 
-const historyUrl = `${API_BASE_URL}/v1/captain/orders/history`;
+const historyUrl = `${environment.apiUrl}/v1/captain/orders/history`;
 
 function historyItem(id: string, captainProfit: number): CaptainOrderHistoryItem {
   return {

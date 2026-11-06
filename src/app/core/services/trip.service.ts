@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, catchError, finalize, switchMap } from 'rxjs';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { classifyCaptainError } from '../http/captain-error';
 import { idempotencyHeaders } from '../http/idempotency';
 import {
@@ -35,8 +35,8 @@ import { AudioService } from './audio.service';
 import { RealtimeService } from './realtime.service';
 import { ToastService } from './toast.service';
 
-const OFFERS_URL = `${API_BASE_URL}/v1/captain/offers/current`;
-const TASKS_URL = `${API_BASE_URL}/v1/captain/tasks/current`;
+const OFFERS_URL = `${environment.apiUrl}/v1/captain/offers/current`;
+const TASKS_URL = `${environment.apiUrl}/v1/captain/tasks/current`;
 /** Fallback while the socket is down. The captain is online and not on a trip. */
 const OFFER_POLL_MS = 10_000;
 
@@ -149,7 +149,7 @@ export class TripService {
     this.pendingAction.set('accept');
 
     this.http
-      .post<CaptainTask>(`${API_BASE_URL}/v1/captain/offers/${offer.id}/accept`, {}, {
+      .post<CaptainTask>(`${environment.apiUrl}/v1/captain/offers/${offer.id}/accept`, {}, {
         headers: idempotencyHeaders(key),
       })
       .pipe(finalize(() => this.release('accept')))
@@ -174,7 +174,7 @@ export class TripService {
 
     this.http
       .post<void>(
-        `${API_BASE_URL}/v1/captain/offers/${offer.id}/decline`,
+        `${environment.apiUrl}/v1/captain/offers/${offer.id}/decline`,
         { reason: trimmed },
         { headers: idempotencyHeaders(key) },
       )
@@ -215,7 +215,7 @@ export class TripService {
       .pipe(
         switchMap((location) =>
           this.http.post<CaptainTask>(
-            `${API_BASE_URL}/v1/captain/tasks/${task.id}/stops/${stopId}/complete`,
+            `${environment.apiUrl}/v1/captain/tasks/${task.id}/stops/${stopId}/complete`,
             completionBody(task, stopId, location, farReason),
             { headers: idempotencyHeaders(key) },
           ),
@@ -232,32 +232,38 @@ export class TripService {
   }
 
   /**
-   * Confirms a shop pickup with a required physical invoice photo.
+   * Completes a VENDOR stop with the required physical invoice photo.
+   * Same route as every other stop: `POST .../stops/{stopId}/complete`.
    * Multipart body: `invoice` file. Refetches the active task on success.
    */
-  confirmShop(taskId: string, shopId: string, invoice: File, onSuccess: () => void): void {
-    if (this.pendingAction() || !shopId) {
+  confirmShop(taskId: string, stopId: string, invoice: File, onSuccess: () => void): void {
+    if (this.pendingAction() || !taskId || !stopId) {
       return;
     }
 
     const body = new FormData();
     body.append('invoice', invoice);
     this.pendingAction.set('confirm');
+    this.pendingStopId.set(stopId);
 
     this.http
       .post<CaptainTask>(
-        `${API_BASE_URL}/v1/captain/tasks/${taskId}/shops/${shopId}/confirm`,
+        `${environment.apiUrl}/v1/captain/tasks/${taskId}/stops/${stopId}/complete`,
         body,
         { headers: idempotencyHeaders() },
       )
       .pipe(finalize(() => this.release('confirm')))
       .subscribe({
-        next: () => {
+        next: (nextTask) => {
           this.toast.show('تم تأكيد تجهيز الطلب');
-          this.refreshTask();
+          if (nextTask?.id) {
+            this.applyAuthoritativeTask(nextTask);
+          } else {
+            this.refreshTask();
+          }
           onSuccess();
         },
-        error: (error: unknown) => this.handleActionError(error),
+        error: (error: unknown) => this.handleActionError(error, taskId, stopId),
       });
   }
 
@@ -277,7 +283,7 @@ export class TripService {
         switchMap((location) => {
           const body: ArriveStopBody = location ? { location } : {};
           return this.http.post<CaptainTask>(
-            `${API_BASE_URL}/v1/captain/tasks/${task.id}/stops/${stopId}/arrive`,
+            `${environment.apiUrl}/v1/captain/tasks/${task.id}/stops/${stopId}/arrive`,
             body,
             { headers: idempotencyHeaders(key) },
           );
@@ -326,7 +332,7 @@ export class TripService {
       .pipe(
         switchMap((location) =>
           this.http.post<CaptainTask>(
-            `${API_BASE_URL}/v1/captain/tasks/${task.id}/issues`,
+            `${environment.apiUrl}/v1/captain/tasks/${task.id}/issues`,
             {
               type,
               note: null,

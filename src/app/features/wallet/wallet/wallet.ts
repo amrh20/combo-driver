@@ -3,7 +3,7 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CashSettlementStatus } from '../../../core/models';
-import { formatArabicDateTime } from '../../../core/mocks/date-helpers';
+import { formatArabicDateTime } from '../../../shared/utils/date-format';
 import { AuthService } from '../../../core/services/auth';
 import { DriverWalletService } from '../../../core/services/driver-wallet.service';
 import { ToastService } from '../../../core/services/toast.service';

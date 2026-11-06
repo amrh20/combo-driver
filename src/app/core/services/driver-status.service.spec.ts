@@ -2,10 +2,10 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { DriverStatusService } from './driver-status.service';
 
-const shiftsUrl = `${API_BASE_URL}/v1/captain/shifts`;
+const shiftsUrl = `${environment.apiUrl}/v1/captain/shifts`;
 
 describe('DriverStatusService shifts', () => {
   let driverStatus: DriverStatusService;

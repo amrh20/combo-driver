@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { DELIVERY_ISSUE_OPTIONS } from '../../../core/mocks/driver.mock';
+import { DELIVERY_ISSUE_OPTIONS } from '../../../core/constants/delivery-issue-options';
 import {
   CASH_IN_HAND_LIMIT_MESSAGE,
   CASH_IN_HAND_WARNING_MESSAGE,
@@ -93,7 +93,7 @@ export class Home implements OnInit {
 
   readonly confirmSheetOpen = signal(false);
   readonly confirmShopName = signal('');
-  readonly confirmVendorId = signal('');
+  readonly confirmStopId = signal('');
   readonly confirmFileName = signal('');
   private confirmFile: File | null = null;
 
@@ -193,11 +193,11 @@ export class Home implements OnInit {
   }
 
   openConfirmSheet(shop: ShopStopView): void {
-    if (this.pendingAction() || shop.isDone || !shop.vendorId) {
+    if (this.pendingAction() || shop.isDone || !shop.stopId) {
       return;
     }
 
-    this.confirmVendorId.set(shop.vendorId);
+    this.confirmStopId.set(shop.stopId);
     this.confirmShopName.set(shop.shopName);
     this.confirmFileName.set('');
     this.confirmFile = null;
@@ -210,7 +210,7 @@ export class Home implements OnInit {
     }
 
     this.confirmSheetOpen.set(false);
-    this.confirmVendorId.set('');
+    this.confirmStopId.set('');
     this.confirmShopName.set('');
     this.confirmFile = null;
     this.confirmFileName.set('');
@@ -229,14 +229,14 @@ export class Home implements OnInit {
   submitConfirm(): void {
     const trip = this.tripView();
     const file = this.confirmFile;
-    const shopId = this.confirmVendorId();
-    if (!trip || !file || !shopId || this.pendingAction()) {
+    const stopId = this.confirmStopId();
+    if (!trip || !file || !stopId || this.pendingAction()) {
       return;
     }
 
-    this.trip.confirmShop(trip.taskId, shopId, file, () => {
+    this.trip.confirmShop(trip.taskId, stopId, file, () => {
       this.confirmSheetOpen.set(false);
-      this.confirmVendorId.set('');
+      this.confirmStopId.set('');
       this.confirmShopName.set('');
       this.confirmFile = null;
       this.confirmFileName.set('');

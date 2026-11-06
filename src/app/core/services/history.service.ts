@@ -2,9 +2,9 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, finalize, map, of, tap } from 'rxjs';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { CursorPage, collectCursorPages } from '../http/cursor-page';
-import { formatArabicDateTime } from '../mocks/date-helpers';
+import { formatArabicDateTime } from '../../shared/utils/date-format';
 import {
   CaptainOrderHistoryItem,
   CompletedDriverOrder,
@@ -13,7 +13,7 @@ import {
 } from '../models';
 import { ToastService } from './toast.service';
 
-const HISTORY_URL = `${API_BASE_URL}/v1/captain/orders/history`;
+const HISTORY_URL = `${environment.apiUrl}/v1/captain/orders/history`;
 const PAGE_LIMIT = '100';
 
 @Injectable({

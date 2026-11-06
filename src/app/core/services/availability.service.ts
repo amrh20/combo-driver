@@ -2,13 +2,13 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { EMPTY, Observable, catchError, finalize, of, switchMap, tap, throwError } from 'rxjs';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { idempotencyHeaders } from '../http/idempotency';
 import { ApiErrorBody, CaptainAvailability } from '../models';
 import { DriverStatusService } from './driver-status.service';
 import { ToastService } from './toast.service';
 
-const AVAILABILITY_URL = `${API_BASE_URL}/v1/captain/availability`;
+const AVAILABILITY_URL = `${environment.apiUrl}/v1/captain/availability`;
 
 @Injectable({
   providedIn: 'root',

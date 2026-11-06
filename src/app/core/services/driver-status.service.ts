@@ -2,13 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, finalize, map, of, tap } from 'rxjs';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { CursorPage, collectCursorPages } from '../http/cursor-page';
-import { formatArabicDate } from '../mocks/date-helpers';
+import { formatArabicDate } from '../../shared/utils/date-format';
 import { CaptainAvailability, CaptainOpenShift, CaptainShift, ShiftSession, ShiftTimeFilter } from '../models';
 import { ToastService } from './toast.service';
 
-const SHIFTS_URL = `${API_BASE_URL}/v1/captain/shifts`;
+const SHIFTS_URL = `${environment.apiUrl}/v1/captain/shifts`;
 const PAGE_LIMIT = '100';
 
 @Injectable({

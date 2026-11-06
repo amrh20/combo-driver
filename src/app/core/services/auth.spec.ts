@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { authInterceptor } from '../interceptors/auth.interceptor';
 import { AuthService } from './auth';
 import { DriverStatusService } from './driver-status.service';
@@ -29,7 +29,7 @@ describe('AuthService', () => {
   it('stores the captain tokens and loads the profile role', () => {
     auth.login('01012345678', 'Temp-pass-1').subscribe();
 
-    const login = http.expectOne(`${API_BASE_URL}/v1/auth/captain/login`);
+    const login = http.expectOne(`${environment.apiUrl}/v1/auth/captain/login`);
     expect(login.request.method).toBe('POST');
     expect(login.request.body).toEqual({ phone: '01012345678', password: 'Temp-pass-1' });
     login.flush({
@@ -45,7 +45,7 @@ describe('AuthService', () => {
 
     auth.fetchProfile().subscribe();
 
-    const profile = http.expectOne(`${API_BASE_URL}/v1/auth/captain/me`);
+    const profile = http.expectOne(`${environment.apiUrl}/v1/auth/captain/me`);
     expect(profile.request.headers.get('Authorization')).toBe('Bearer access-1');
     profile.flush({
       id: 'cap-1',
@@ -73,7 +73,7 @@ describe('AuthService', () => {
       completed = true;
     });
 
-    const closeShift = http.expectOne(`${API_BASE_URL}/v1/captain/availability`);
+    const closeShift = http.expectOne(`${environment.apiUrl}/v1/captain/availability`);
     expect(closeShift.request.method).toBe('POST');
     expect(closeShift.request.body).toEqual({ online: false });
     expect(closeShift.request.headers.get('Authorization')).toBe('Bearer access-1');
@@ -103,7 +103,7 @@ describe('AuthService', () => {
       completed = true;
     });
 
-    http.expectOne(`${API_BASE_URL}/v1/captain/availability`).flush(
+    http.expectOne(`${environment.apiUrl}/v1/captain/availability`).flush(
       { error: { code: 'INVALID_STATE', message: 'Finish your trip' } },
       { status: 409, statusText: 'Conflict' }
     );
@@ -112,7 +112,7 @@ describe('AuthService', () => {
     expect(auth.isAuthenticated()).toBe(false);
     expect(window.localStorage.getItem('combo-captain-access-token')).toBeNull();
     expect(status.isOnline()).toBe(false);
-    http.expectNone(`${API_BASE_URL}/v1/captain/availability`);
+    http.expectNone(`${environment.apiUrl}/v1/captain/availability`);
   });
 
   it('clears the session when closing the shift times out', () => {
@@ -126,7 +126,7 @@ describe('AuthService', () => {
         completed = true;
       });
 
-      http.expectOne(`${API_BASE_URL}/v1/captain/availability`);
+      http.expectOne(`${environment.apiUrl}/v1/captain/availability`);
       expect(completed).toBe(false);
 
       vi.advanceTimersByTime(8_000);
@@ -145,7 +145,7 @@ describe('AuthService', () => {
       completed = true;
     });
 
-    http.expectNone(`${API_BASE_URL}/v1/captain/availability`);
+    http.expectNone(`${environment.apiUrl}/v1/captain/availability`);
     expect(completed).toBe(true);
     expect(auth.isAuthenticated()).toBe(false);
   });
@@ -153,7 +153,7 @@ describe('AuthService', () => {
 
 function signIn(auth: AuthService, http: HttpTestingController): void {
   auth.login('01012345678', 'Temp-pass-1').subscribe();
-  http.expectOne(`${API_BASE_URL}/v1/auth/captain/login`).flush({
+  http.expectOne(`${environment.apiUrl}/v1/auth/captain/login`).flush({
     accessToken: 'access-1',
     refreshToken: 'refresh-1',
     expiresIn: 900,

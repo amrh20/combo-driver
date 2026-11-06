@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, finalize, map, of, shareReplay, tap, throwError, timeout } from 'rxjs';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { CaptainLoginResponse, CaptainProfile, DriverProfile, DriverRole } from '../models';
 import { AvailabilityService } from './availability.service';
 import { DriverWalletService } from './driver-wallet.service';
@@ -62,7 +62,7 @@ export class AuthService {
 
   login(phone: string, password: string): Observable<CaptainLoginResponse> {
     return this.http
-      .post<CaptainLoginResponse>(`${API_BASE_URL}/v1/auth/captain/login`, {
+      .post<CaptainLoginResponse>(`${environment.apiUrl}/v1/auth/captain/login`, {
         phone: phone.trim(),
         password,
       })
@@ -75,7 +75,7 @@ export class AuthService {
   }
 
   fetchProfile(): Observable<CaptainProfile> {
-    return this.http.get<CaptainProfile>(`${API_BASE_URL}/v1/auth/captain/me`).pipe(
+    return this.http.get<CaptainProfile>(`${environment.apiUrl}/v1/auth/captain/me`).pipe(
       tap((profile) => {
         this.profile.set(profile);
         this.userRole.set(profile.role);
@@ -129,7 +129,7 @@ export class AuthService {
 
     this.refreshInFlight = this.http
       .post<{ accessToken: string; refreshToken: string; expiresIn: number }>(
-        `${API_BASE_URL}/v1/auth/refresh`,
+        `${environment.apiUrl}/v1/auth/refresh`,
         { refreshToken },
       )
       .pipe(

@@ -305,7 +305,7 @@
                       variant="outline"
                       size="sm"
                       [fullWidth]="true"
-                      [loading]="pendingAction() === 'confirm' && confirmVendorId() === shop.vendorId"
+                      [loading]="pendingAction() === 'confirm' && confirmStopId() === shop.stopId"
                       [disabled]="pendingAction() !== null"
                       (clicked)="openConfirmSheet(shop)"
                     >

@@ -5,7 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { Subject, of } from 'rxjs';
 import { vi } from 'vitest';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { CAPTAIN_NETWORK_MESSAGE } from '../http/captain-error';
 import { CaptainOffer, CaptainTask, RealtimeMessage, TaskFlags, TaskStop } from '../models';
 import { AuthService } from './auth';
@@ -16,8 +16,8 @@ import { RealtimeService } from './realtime.service';
 import { ToastService } from './toast.service';
 import { TripService } from './trip.service';
 
-const offersUrl = `${API_BASE_URL}/v1/captain/offers/current`;
-const tasksUrl = `${API_BASE_URL}/v1/captain/tasks/current`;
+const offersUrl = `${environment.apiUrl}/v1/captain/offers/current`;
+const tasksUrl = `${environment.apiUrl}/v1/captain/tasks/current`;
 
 describe('TripService', () => {
   let trip: TripService;
@@ -128,23 +128,24 @@ describe('TripService', () => {
     expect(toast.current()).toBeNull();
   });
 
-  it('posts shop confirmation as multipart invoice and refetches the task', () => {
-    goOnline(null);
+  it('completes a vendor stop as multipart invoice via stops/{stopId}/complete', () => {
+    goOnline(null, vendorTask());
     const file = new File([new Uint8Array([1, 2, 3])], 'invoice.png', { type: 'image/png' });
     let closed = false;
-    trip.confirmShop('task-1', 'vendor-1', file, () => {
+    trip.confirmShop('task-1', 'stop-vendor', file, () => {
       closed = true;
     });
 
-    const req = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/shops/vendor-1/confirm`);
+    const req = http.expectOne(`${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-vendor/complete`);
     expect(req.request.method).toBe('POST');
     const body = req.request.body as FormData;
     expect(body.get('invoice')).toBe(file);
     expect(req.request.headers.get('Idempotency-Key')).toBeTruthy();
-    req.flush({});
-    http.expectOne(tasksUrl).flush(null);
+    req.flush(customerTask());
     expect(closed).toBe(true);
     expect(toast.current()).toBe('تم تأكيد تجهيز الطلب');
+    expect(trip.screen()).toBe('CUSTOMER');
+    expect(trip.pendingAction()).toBeNull();
   });
 
   it('fetches the current offer when offer.created arrives and refetches after reconnect', () => {
@@ -165,7 +166,7 @@ describe('TripService', () => {
     trip.acceptOffer();
     trip.acceptOffer();
 
-    const request = http.expectOne(`${API_BASE_URL}/v1/captain/offers/offer-1/accept`);
+    const request = http.expectOne(`${environment.apiUrl}/v1/captain/offers/offer-1/accept`);
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({});
     expect(request.request.headers.get('Idempotency-Key')).toMatch(/^[A-Za-z0-9_-]{8,128}$/);
@@ -180,7 +181,7 @@ describe('TripService', () => {
     goOnline(liveOffer());
     trip.declineOffer('  بعيد عن موقعي  ');
 
-    const request = http.expectOne(`${API_BASE_URL}/v1/captain/offers/offer-1/decline`);
+    const request = http.expectOne(`${environment.apiUrl}/v1/captain/offers/offer-1/decline`);
     expect(request.request.body).toEqual({ reason: 'بعيد عن موقعي' });
     expect(request.request.headers.get('Idempotency-Key')).toMatch(/^[A-Za-z0-9_-]{8,128}$/);
     request.flush(null);
@@ -193,7 +194,7 @@ describe('TripService', () => {
     trip.completeCurrentStop('stop-vendor-2');
 
     const pickup = http.expectOne(
-      `${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-vendor-2/complete`,
+      `${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-vendor-2/complete`,
     );
     expect(pickup.request.body).toEqual({ location: { lat: 30.1, lng: 31.2 } });
     pickup.flush(multiVendorTask('stop-vendor-2'));
@@ -203,23 +204,23 @@ describe('TripService', () => {
   it('completes a known pending stop and sends cash in piastres for a cash delivery', () => {
     goOnline(null, vendorTask());
     trip.completeCurrentStop('stop-other');
-    http.expectNone(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-other/complete`);
+    http.expectNone(`${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-other/complete`);
 
     trip.completeCurrentStop('stop-vendor');
-    const pickup = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-vendor/complete`);
+    const pickup = http.expectOne(`${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-vendor/complete`);
     expect(pickup.request.body).toEqual({ location: { lat: 30.1, lng: 31.2 } });
     expect(pickup.request.headers.get('Idempotency-Key')).toMatch(/^[A-Za-z0-9_-]{8,128}$/);
     pickup.flush(customerTask());
 
     expect(trip.screen()).toBe('CUSTOMER');
     trip.arriveAtCustomer();
-    const arrive = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/arrive`);
+    const arrive = http.expectOne(`${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-customer/arrive`);
     expect(arrive.request.body).toEqual({ location: { lat: 30.1, lng: 31.2 } });
     arrive.flush(customerTask('ARRIVED'));
     expect(trip.screen()).toBe('COLLECTION');
 
     trip.completeCurrentStop('stop-customer');
-    const deliver = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
+    const deliver = http.expectOne(`${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
     expect(deliver.request.body).toEqual({
       location: { lat: 30.1, lng: 31.2 },
       cashCollected: 25000,
@@ -242,7 +243,7 @@ describe('TripService', () => {
     goOnline(null, vendorTask());
     trip.completeCurrentStop('stop-vendor');
 
-    http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-vendor/complete`).flush(
+    http.expectOne(`${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-vendor/complete`).flush(
       { error: { code: 'INVALID_STATE', message: 'استنى موظف الهب' } },
       { status: 409, statusText: 'Conflict' },
     );
@@ -258,7 +259,7 @@ describe('TripService', () => {
     expect(trip.screen()).toBe('COLLECTION');
     trip.completeCurrentStop('stop-customer');
 
-    const first = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
+    const first = http.expectOne(`${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
     const firstKey = first.request.headers.get('Idempotency-Key');
     first.flush(
       {
@@ -280,10 +281,10 @@ describe('TripService', () => {
     expect(toast.current()).toBeNull();
 
     trip.submitFarReason('ا');
-    http.expectNone(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
+    http.expectNone(`${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
 
     trip.submitFarReason('العميل قابلني عند البوابة');
-    const retry = http.expectOne(`${API_BASE_URL}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
+    const retry = http.expectOne(`${environment.apiUrl}/v1/captain/tasks/task-1/stops/stop-customer/complete`);
     expect(retry.request.body).toEqual({
       location: { lat: 30.1, lng: 31.2 },
       cashCollected: 25000,
@@ -300,7 +301,7 @@ describe('TripService', () => {
     goOnline(liveOffer());
     trip.acceptOffer();
 
-    http.expectOne(`${API_BASE_URL}/v1/captain/offers/offer-1/accept`).error(new ProgressEvent('error'));
+    http.expectOne(`${environment.apiUrl}/v1/captain/offers/offer-1/accept`).error(new ProgressEvent('error'));
     expect(toast.current()).toBe(CAPTAIN_NETWORK_MESSAGE);
     expect(trip.pendingAction()).toBeNull();
   });

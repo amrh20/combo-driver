@@ -2,13 +2,13 @@ import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { DriverWalletService } from './driver-wallet.service';
 
-const walletUrl = `${API_BASE_URL}/v1/captain/wallet`;
-const settleUrl = `${API_BASE_URL}/v1/captain/wallet/settle`;
-const settlePayoutUrl = `${API_BASE_URL}/v1/captain/wallet/settle-payout`;
-const historyUrl = `${API_BASE_URL}/v1/captain/wallet/history`;
+const walletUrl = `${environment.apiUrl}/v1/captain/wallet`;
+const settleUrl = `${environment.apiUrl}/v1/captain/wallet/settle`;
+const settlePayoutUrl = `${environment.apiUrl}/v1/captain/wallet/settle-payout`;
+const historyUrl = `${environment.apiUrl}/v1/captain/wallet/history`;
 
 const piastres = {
   companyCashBalance: 95050,

@@ -3,7 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, finalize, map, of, switchMap, tap } from 'rxjs';
 
 import { piastresToEgp } from '../../shared/utils/format';
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { CursorPage, collectCursorPages } from '../http/cursor-page';
 import { idempotencyHeaders } from '../http/idempotency';
 import {
@@ -17,10 +17,10 @@ import {
   SettlementTransaction,
 } from '../models';
 
-const WALLET_URL = `${API_BASE_URL}/v1/captain/wallet`;
-const SETTLE_URL = `${API_BASE_URL}/v1/captain/wallet/settle`;
-const SETTLE_PAYOUT_URL = `${API_BASE_URL}/v1/captain/wallet/settle-payout`;
-const SETTLEMENT_HISTORY_URL = `${API_BASE_URL}/v1/captain/wallet/history`;
+const WALLET_URL = `${environment.apiUrl}/v1/captain/wallet`;
+const SETTLE_URL = `${environment.apiUrl}/v1/captain/wallet/settle`;
+const SETTLE_PAYOUT_URL = `${environment.apiUrl}/v1/captain/wallet/settle-payout`;
+const SETTLEMENT_HISTORY_URL = `${environment.apiUrl}/v1/captain/wallet/history`;
 const PAGE_LIMIT = '100';
 
 const EMPTY_WALLET: DriverWalletState = {

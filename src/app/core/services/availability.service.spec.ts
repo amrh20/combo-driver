@@ -2,13 +2,13 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { API_BASE_URL } from '../config/api';
+import { environment } from '../../../environments/environment';
 import { availabilitySyncInterceptor } from '../interceptors/availability-sync.interceptor';
 import { AvailabilityService } from './availability.service';
 import { DriverStatusService } from './driver-status.service';
 import { ToastService } from './toast.service';
 
-const availabilityUrl = `${API_BASE_URL}/v1/captain/availability`;
+const availabilityUrl = `${environment.apiUrl}/v1/captain/availability`;
 const openShift = {
   id: 'shift-1',
   startedAt: '2026-10-18T08:00:00.000Z',
@@ -152,12 +152,12 @@ describe('availabilitySyncInterceptor', () => {
     availability.load().subscribe();
     http.expectOne(availabilityUrl).flush({ online: true, shift: openShift });
 
-    TestBed.inject(HttpClient).post(`${API_BASE_URL}/v1/captain/locations`, { pings: [] }).subscribe({
+    TestBed.inject(HttpClient).post(`${environment.apiUrl}/v1/captain/locations`, { pings: [] }).subscribe({
       error: () => undefined,
     });
 
     http
-      .expectOne(`${API_BASE_URL}/v1/captain/locations`)
+      .expectOne(`${environment.apiUrl}/v1/captain/locations`)
       .flush(
         { error: { code: 'INVALID_STATE', message: 'Offline' } },
         { status: 409, statusText: 'Conflict' }
