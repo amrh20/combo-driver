@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../environments/environment';
 import { DriverWalletService } from './driver-wallet.service';
+import { ToastService } from './toast.service';
 
 const walletUrl = `${environment.apiUrl}/v1/captain/wallet`;
 const settleUrl = `${environment.apiUrl}/v1/captain/wallet/settle`;
@@ -130,7 +131,9 @@ describe('DriverWalletService', () => {
     http.expectNone(walletUrl);
   });
 
-  it('keeps the last known balances when a refresh fails', () => {
+  it('toasts and rethrows when a refresh fails, keeping the last known balances', () => {
+    const toast = TestBed.inject(ToastService);
+
     wallet.load().subscribe();
     http.expectOne(walletUrl).flush(piastres);
 
@@ -145,7 +148,8 @@ describe('DriverWalletService', () => {
       { status: 500, statusText: 'Server Error' },
     );
 
-    expect(failed).toBe(false);
+    expect(failed).toBe(true);
+    expect(toast.current()).toBe('تعذر تحميل أرصدة المحفظة.');
     expect(wallet.unremittedCash()).toBe(950.5);
     expect(wallet.earnings()).toBe(200);
     expect(wallet.isCashBlocked()).toBe(true);

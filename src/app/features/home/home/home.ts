@@ -1,4 +1,15 @@
-import { Component, DestroyRef, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { DELIVERY_ISSUE_OPTIONS } from '../../../core/constants/delivery-issue-options';
@@ -95,7 +106,9 @@ export class Home implements OnInit {
   readonly confirmShopName = signal('');
   readonly confirmStopId = signal('');
   readonly confirmFileName = signal('');
+  readonly confirmDragging = signal(false);
   private confirmFile: File | null = null;
+  private readonly invoiceInput = viewChild<ElementRef<HTMLInputElement>>('invoiceInput');
 
   readonly issueSheetOpen = signal(false);
   readonly selectedIssue = signal<DeliveryIssueType | null>(null);
@@ -199,8 +212,7 @@ export class Home implements OnInit {
 
     this.confirmStopId.set(shop.stopId);
     this.confirmShopName.set(shop.shopName);
-    this.confirmFileName.set('');
-    this.confirmFile = null;
+    this.clearConfirmSelection();
     this.confirmSheetOpen.set(true);
   }
 
@@ -212,14 +224,42 @@ export class Home implements OnInit {
     this.confirmSheetOpen.set(false);
     this.confirmStopId.set('');
     this.confirmShopName.set('');
-    this.confirmFile = null;
-    this.confirmFileName.set('');
+    this.clearConfirmSelection();
   }
 
   onConfirmFile(input: HTMLInputElement): void {
-    const file = input.files?.[0] ?? null;
-    this.confirmFile = file;
-    this.confirmFileName.set(file?.name ?? '');
+    this.setConfirmFile(input.files?.[0] ?? null);
+  }
+
+  onConfirmDragEnter(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.confirmDragging.set(true);
+  }
+
+  onConfirmDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.confirmDragging.set(true);
+  }
+
+  onConfirmDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.confirmDragging.set(false);
+  }
+
+  onConfirmDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.confirmDragging.set(false);
+
+    const file = event.dataTransfer?.files?.[0] ?? null;
+    if (!file || !file.type.startsWith('image/')) {
+      return;
+    }
+
+    this.setConfirmFile(file);
   }
 
   canSubmitConfirm(): boolean {
@@ -238,9 +278,22 @@ export class Home implements OnInit {
       this.confirmSheetOpen.set(false);
       this.confirmStopId.set('');
       this.confirmShopName.set('');
-      this.confirmFile = null;
-      this.confirmFileName.set('');
+      this.clearConfirmSelection();
     });
+  }
+
+  private setConfirmFile(file: File | null): void {
+    this.confirmFile = file;
+    this.confirmFileName.set(file?.name ?? '');
+  }
+
+  private clearConfirmSelection(): void {
+    this.setConfirmFile(null);
+    this.confirmDragging.set(false);
+    const input = this.invoiceInput()?.nativeElement;
+    if (input) {
+      input.value = '';
+    }
   }
 
   arriveAtCustomer(): void {

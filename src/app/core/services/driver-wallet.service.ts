@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, catchError, finalize, map, of, switchMap, tap } from 'rxjs';
+import { Observable, catchError, finalize, map, of, switchMap, tap, throwError } from 'rxjs';
 
 import { piastresToEgp } from '../../shared/utils/format';
 import { environment } from '../../../environments/environment';
@@ -16,6 +16,7 @@ import {
   LedgerTransaction,
   SettlementTransaction,
 } from '../models';
+import { ToastService } from './toast.service';
 
 const WALLET_URL = `${environment.apiUrl}/v1/captain/wallet`;
 const SETTLE_URL = `${environment.apiUrl}/v1/captain/wallet/settle`;
@@ -35,6 +36,7 @@ const EMPTY_WALLET: DriverWalletState = {
 })
 export class DriverWalletService {
   private readonly http = inject(HttpClient);
+  private readonly toast = inject(ToastService);
 
   /** Bumped on logout so an in-flight response cannot restore the previous captain. */
   private generation = 0;
@@ -77,7 +79,12 @@ export class DriverWalletService {
       : of(undefined);
 
     return this.readWallet(generation).pipe(
-      catchError(() => of(undefined)),
+      catchError((error: unknown) => {
+        if (generation === this.generation) {
+          this.toast.show('تعذر تحميل أرصدة المحفظة.');
+        }
+        return throwError(() => error);
+      }),
       switchMap(() => afterWallet),
       finalize(() => {
         if (generation === this.generation) {
@@ -150,7 +157,8 @@ export class DriverWalletService {
   }
 
   /**
-   * A failed refresh keeps the last known balances so a blip cannot lift the cash block.
+   * Applies a successful wallet payload. Failures surface via `load()` (toast + rethrow) so the
+   * UI does not silently keep a stale عهدة; last known balances remain until the next success.
    * An empty body still zeros the screen.
    */
   private applyIfCurrent(generation: number, wallet: CaptainWallet | null | undefined): void {

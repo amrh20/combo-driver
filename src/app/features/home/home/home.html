@@ -629,19 +629,82 @@
   <p class="issue-sheet__hint combo-fs-14 combo-mb-16">
     برجاء إرفاق صورة فاتورة المتجر لـ {{ confirmShopName() }}.
   </p>
-  <label class="invoice-field combo-mb-16">
-    <span class="invoice-field__label combo-fs-13 font-bold">صورة فاتورة المتجر</span>
-    <input
-      class="invoice-field__file"
-      type="file"
-      accept="image/*"
-      required
-      (change)="onConfirmFile($any($event.target))"
-    />
-    @if (confirmFileName()) {
-      <span class="invoice-field__name combo-fs-12">{{ confirmFileName() }}</span>
-    }
-  </label>
+  <div class="invoice-field combo-mb-16">
+    <span class="invoice-field__label combo-fs-13 font-bold" id="invoice-upload-label">
+      صورة فاتورة المتجر
+    </span>
+    <label
+      class="invoice-dropzone"
+      [class.invoice-dropzone--filled]="confirmFileName()"
+      [class.invoice-dropzone--dragging]="confirmDragging()"
+      for="invoice-upload-input"
+      (dragenter)="onConfirmDragEnter($event)"
+      (dragover)="onConfirmDragOver($event)"
+      (dragleave)="onConfirmDragLeave($event)"
+      (drop)="onConfirmDrop($event)"
+    >
+      <input
+        #invoiceInput
+        id="invoice-upload-input"
+        class="invoice-dropzone__input"
+        type="file"
+        accept="image/*"
+        required
+        [attr.aria-labelledby]="'invoice-upload-label'"
+        (change)="onConfirmFile($any($event.target))"
+      />
+
+      @if (confirmFileName(); as fileName) {
+        <span class="invoice-dropzone__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M14 3v5h5"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M9 13h6M9 17h4"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+        </span>
+        <span class="invoice-dropzone__filename combo-fs-14 font-bold">{{ fileName }}</span>
+        <span class="invoice-dropzone__change combo-fs-12 font-medium">تغيير الصورة</span>
+      } @else {
+        <span class="invoice-dropzone__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 16V8m0 0 3 3m-3-3-3 3"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M4 16.5V17a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-.5"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+        </span>
+        <span class="invoice-dropzone__title combo-fs-14 font-bold">
+          اضغط هنا لإرفاق صورة الفاتورة
+        </span>
+        <span class="invoice-dropzone__subtitle combo-fs-12">أو قم بسحب وإفلات الصورة</span>
+      }
+    </label>
+  </div>
   <combo-button
     [fullWidth]="true"
     [disabled]="!canSubmitConfirm()"
