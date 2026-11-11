@@ -562,12 +562,15 @@
 
 .invoice-dropzone {
   position: relative;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 148px;
   padding: 20px 16px;
   border: 2px dashed var(--Combo-border-border-neutral-primary);
@@ -575,15 +578,22 @@
   background: var(--Combo-bg-background-white);
   text-align: center;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition:
     border-color 0.2s ease,
     background-color 0.2s ease,
     box-shadow 0.2s ease;
 
-  &:hover,
   &:focus-within {
     background: var(--Combo-bg-background-neutral-50);
     border-color: var(--Combo-border-border-primary-light);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--Combo-bg-background-neutral-50);
+      border-color: var(--Combo-border-border-primary-light);
+    }
   }
 
   &--dragging {
@@ -596,10 +606,16 @@
     border-color: var(--Combo-border-border-primary);
     background: var(--Combo-bg-background-primary-50);
 
-    &:hover,
     &:focus-within {
       background: var(--Combo-bg-background-primary-50);
       border-color: var(--Combo-border-border-primary);
+    }
+
+    @media (hover: hover) {
+      &:hover {
+        background: var(--Combo-bg-background-primary-50);
+        border-color: var(--Combo-border-border-primary);
+      }
     }
   }
 
@@ -617,6 +633,7 @@
 
   &__icon {
     display: inline-flex;
+    flex-shrink: 0;
     width: 28px;
     height: 28px;
     color: var(--Combo-text-text-secondary-paragraph);
@@ -631,27 +648,59 @@
     color: var(--Combo-text-text-primary);
   }
 
+  &__title,
+  &__subtitle,
+  &__filename {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   &__title {
     color: var(--Combo-text-text-primary);
-    line-height: 1.4;
   }
 
   &__subtitle {
     color: var(--Combo-text-text-secondary-paragraph);
-    line-height: 1.4;
+
+    &--touch {
+      display: none;
+    }
   }
 
   &__filename {
-    max-width: 100%;
     color: var(--Combo-text-text-display);
-    line-height: 1.4;
-    word-break: break-word;
   }
 
   &__change {
     color: var(--Combo-text-text-error);
     text-decoration: underline;
     text-underline-offset: 2px;
+  }
+
+  @media (pointer: coarse) {
+    &__subtitle--desktop {
+      display: none;
+    }
+
+    &__subtitle--touch {
+      display: block;
+    }
+  }
+
+  @media (max-width: 380px) {
+    min-height: 132px;
+    padding: 16px 12px;
+    gap: 6px;
+    border-radius: 14px;
+
+    &__icon {
+      width: 24px;
+      height: 24px;
+    }
   }
 }
 
